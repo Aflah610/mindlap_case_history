@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mindlap Case History Management System</title>
+  
+  <!-- SEO & Meta -->
+  <meta name="description" content="Mindlap Case History Management System - Secure, responsive mental health clinic management platform for psychologists, CCD staff, and administrators.">
+  <meta name="theme-color" content="#0284c7">
+
+  <!-- Google Fonts: Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Chart.js for Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+
+  <!-- Application CSS -->
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+  <div id="app">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <div class="logo-icon">M</div>
+        <div class="logo-text">
+          <span class="brand">Mindlap</span>
+          <span class="tagline">Therapy Clinic</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <div class="nav-item active" data-view="dashboard">
+          <i data-lucide="layout-dashboard"></i>
+          <span>Dashboard</span>
+        </div>
+
+        <div class="nav-item" data-view="clients">
+          <i data-lucide="users"></i>
+          <span>Clients Directory</span>
+        </div>
+
+        <div class="nav-item" data-view="case-histories">
+          <i data-lucide="file-text"></i>
+          <span>Case Histories</span>
+        </div>
+
+        <div class="nav-item" data-view="appointments">
+          <i data-lucide="calendar"></i>
+          <span>Appointments</span>
+        </div>
+
+        <div class="nav-item" data-view="documents">
+          <i data-lucide="folder"></i>
+          <span>Documents</span>
+        </div>
+
+        <div class="nav-item" data-view="staff" id="nav-staff">
+          <i data-lucide="user-check"></i>
+          <span>Staff Management</span>
+        </div>
+
+        <div class="nav-item" data-view="audit-log" id="nav-audit">
+          <i data-lucide="shield-check"></i>
+          <span>Security Audit Log</span>
+        </div>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div>Mindlap Health Systems v2.4</div>
+        <div style="margin-top: 4px; font-size: 11px; color: #475569;">HIPAA & GDPR Compliant</div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace Area -->
+    <div class="main-wrapper">
+      <!-- Top Navbar -->
+      <header class="topbar">
+        <div class="topbar-left">
+          <div class="search-box">
+            <i data-lucide="search"></i>
+            <input type="text" id="global-search" class="search-input" placeholder="Search clients, IDs, or records...">
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <!-- Role Switcher -->
+          <div class="role-switcher-container">
+            <span class="role-switcher-label">View Role:</span>
+            <select id="role-select" class="role-select">
+              <option value="psychologist">Psychologist (Dr. Sarah Jenkins)</option>
+              <option value="ccd">CCD Staff (Marcus Vance)</option>
+              <option value="admin">Administrator (Director)</option>
+            </select>
+          </div>
+
+          <!-- Active User Profile Pill -->
+          <div class="user-profile-badge">
+            <div class="avatar-circle" id="current-user-avatar">SJ</div>
+            <div class="user-meta">
+              <span class="user-name" id="current-user-name">Dr. Sarah Jenkins</span>
+              <span class="user-role-tag" id="current-user-role">PSYCHOLOGIST</span>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Dynamic Page Content Area -->
+      <main class="content-area" id="main-content">
+        <!-- Content dynamically rendered by app.js -->
+      </main>
+    </div>
+  </div>
+
+  <!-- Application Scripts -->
+  <script src="mockData.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

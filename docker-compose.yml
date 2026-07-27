@@ -1,0 +1,50 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: mindlap_postgres
+    environment:
+      POSTGRES_DB: mindlap_db
+      POSTGRES_USER: mindlap_user
+      POSTGRES_PASSWORD: mindlap_secure_password_2026
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./backend
+    container_name: mindlap_backend
+    command: >
+      sh -c "python manage.py migrate &&
+             python seed_data.py &&
+             python manage.py runserver 0.0.0.0:8000"
+    volumes:
+      - ./backend:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_ENGINE=django.db.backends.postgresql
+      - DB_NAME=mindlap_db
+      - DB_USER=mindlap_user
+      - DB_PASSWORD=mindlap_secure_password_2026
+      - DB_HOST=db
+      - DB_PORT=5432
+      - SECRET_KEY=django-insecure-mindlap-secret-key-production-ready-2026-safe!
+    depends_on:
+      - db
+
+  frontend:
+    build: ./frontend
+    container_name: mindlap_frontend
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    depends_on:
+      - backend
+
+volumes:
+  postgres_data:

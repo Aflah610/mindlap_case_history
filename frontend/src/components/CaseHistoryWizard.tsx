@@ -1,0 +1,458 @@
+import React, { useState } from 'react';
+import { Client, CaseHistory, MentalStatusExamination, RiskAssessment, ClinicalDiagnosis, TreatmentPlan } from '../types';
+import { api } from '../services/api';
+import {
+  FileText, CheckCircle2, ChevronRight, ChevronLeft, Save,
+  AlertCircle, ShieldAlert, HeartPulse, Sparkles
+} from 'lucide-react';
+
+interface CaseHistoryWizardProps {
+  client: Client;
+  existingCaseHistory?: CaseHistory | null;
+  onSaveSuccess: () => void;
+}
+
+export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
+  client,
+  existingCaseHistory,
+  onSaveSuccess
+}) => {
+  const [activeStep, setActiveStep] = useState<number>(1);
+  const [submitting, setSubmitting] = useState<boolean>(false);
+  const [saveMessage, setSaveMessage] = useState<string | null>(null);
+
+  // Form State
+  const [presentingProblems, setPresentingProblems] = useState(existingCaseHistory?.presenting_problems || '');
+  const [historyOfPresentIllness, setHistoryOfPresentIllness] = useState(existingCaseHistory?.history_of_present_illness || '');
+  const [medicalHistory, setMedicalHistory] = useState(existingCaseHistory?.medical_history || '');
+  const [psychiatricHistory, setPsychiatricHistory] = useState(existingCaseHistory?.psychiatric_history || '');
+  const [familyHistory, setFamilyHistory] = useState(existingCaseHistory?.family_history || '');
+  const [personalHistory, setPersonalHistory] = useState(existingCaseHistory?.personal_history || '');
+  const [educationalHistory, setEducationalHistory] = useState(existingCaseHistory?.educational_history || '');
+  const [occupationalHistory, setOccupationalHistory] = useState(existingCaseHistory?.occupational_history || '');
+  const [relationshipHistory, setRelationshipHistory] = useState(existingCaseHistory?.relationship_history || '');
+  const [substanceUse, setSubstanceUse] = useState(existingCaseHistory?.substance_use || '');
+  const [socialHistory, setSocialHistory] = useState(existingCaseHistory?.social_history || '');
+  const [clinicalObservation, setClinicalObservation] = useState(existingCaseHistory?.clinical_observation || '');
+  const [treatmentGoals, setTreatmentGoals] = useState(existingCaseHistory?.treatment_goals || '');
+  const [therapistNotes, setTherapistNotes] = useState(existingCaseHistory?.therapist_notes || '');
+
+  // Structured MSE
+  const [mse, setMse] = useState<MentalStatusExamination>(existingCaseHistory?.mental_status_examination || {
+    appearance: 'Well-groomed',
+    behavior: 'Cooperative',
+    speech: 'Normal rate and tone',
+    moodAndAffect: 'Euthymic',
+    thoughtProcess: 'Goal-directed',
+    thoughtContent: 'No delusions or suicidal ideation',
+    perception: 'No hallucinations',
+    cognition: 'Alert and oriented x4',
+    insightAndJudgment: 'Good insight'
+  });
+
+  // Structured Risk
+  const [risk, setRisk] = useState<RiskAssessment>(existingCaseHistory?.risk_assessment || {
+    suicideRisk: 'Low',
+    homicideRisk: 'Low',
+    selfHarmRisk: 'Low',
+    riskNotes: 'No acute suicidal or homicidal intent.'
+  });
+
+  // Structured Diagnosis
+  const [diagnosis, setDiagnosis] = useState<ClinicalDiagnosis>(existingCaseHistory?.diagnosis || {
+    primaryDiagnosis: '',
+    secondaryDiagnosis: '',
+    specifiers: ''
+  });
+
+  // Structured Treatment Plan
+  const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>(existingCaseHistory?.treatment_plan || {
+    shortTermGoals: '',
+    longTermGoals: '',
+    modality: 'Cognitive Behavioral Therapy (CBT)'
+  });
+
+  const steps = [
+    { number: 1, title: 'Demographics' },
+    { number: 2, title: 'Complaints & HPI' },
+    { number: 3, title: 'Medical & Family' },
+    { number: 4, title: 'Life History' },
+    { number: 5, title: 'MSE & Observation' },
+    { number: 6, title: 'Diagnosis & Plan' },
+  ];
+
+  const handleSave = async () => {
+    setSubmitting(true);
+    setSaveMessage(null);
+
+    const payload = {
+      client: client.id,
+      presenting_problems: presentingProblems,
+      history_of_present_illness: historyOfPresentIllness,
+      medical_history: medicalHistory,
+      psychiatric_history: psychiatricHistory,
+      family_history: familyHistory,
+      personal_history: personalHistory,
+      educational_history: educationalHistory,
+      occupational_history: occupationalHistory,
+      relationship_history: relationshipHistory,
+      substance_use: substanceUse,
+      social_history: socialHistory,
+      mental_status_examination: mse,
+      clinical_observation: clinicalObservation,
+      diagnosis: diagnosis,
+      treatment_goals: treatmentGoals,
+      treatment_plan: treatmentPlan,
+      risk_assessment: risk,
+      therapist_notes: therapistNotes
+    };
+
+    try {
+      if (existingCaseHistory?.id) {
+        await api.put(`case-histories/${existingCaseHistory.id}/`, payload);
+      } else {
+        await api.post('case-histories/', payload);
+      }
+      setSaveMessage('Case History saved successfully!');
+      onSaveSuccess();
+    } catch (err) {
+      alert('Failed to save Case History. Please check inputs.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
+      {/* Wizard Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+        <div>
+          <div className="inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 text-[11px] font-bold px-3 py-1 rounded-full uppercase">
+            <Sparkles className="w-3.5 h-3.5" /> Clinical Intake Wizard
+          </div>
+          <h2 className="text-lg font-extrabold text-slate-800 mt-1">
+            Clinical Case History — {client.full_name} ({client.client_code})
+          </h2>
+        </div>
+
+        <button
+          onClick={handleSave}
+          disabled={submitting}
+          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+        >
+          <Save className="w-4 h-4" />
+          {submitting ? 'Saving...' : 'Save Case History'}
+        </button>
+      </div>
+
+      {saveMessage && (
+        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+          {saveMessage}
+        </div>
+      )}
+
+      {/* Progress Bar & Stepper */}
+      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+        {steps.map((s) => (
+          <button
+            key={s.number}
+            onClick={() => setActiveStep(s.number)}
+            className={`flex-1 min-w-[120px] p-2.5 rounded-xl border text-left transition-all ${
+              activeStep === s.number
+                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                : activeStep > s.number
+                ? 'bg-sky-50 text-sky-800 border-sky-200 font-semibold'
+                : 'bg-slate-50 text-slate-500 border-slate-200'
+            }`}
+          >
+            <div className="text-[10px] font-bold uppercase opacity-80">Step {s.number}</div>
+            <div className="text-xs font-bold truncate">{s.title}</div>
+          </button>
+        ))}
+      </div>
+
+      {/* Step Contents */}
+      <div className="space-y-4 pt-2">
+        {/* Step 1: Basic Demographics */}
+        {activeStep === 1 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 1: Patient Demographics & Intake Information</h3>
+            <div className="grid grid-cols-2 gap-4 text-xs">
+              <div><span className="font-bold text-slate-600">Full Name:</span> {client.full_name}</div>
+              <div><span className="font-bold text-slate-600">Client Code:</span> {client.client_code}</div>
+              <div><span className="font-bold text-slate-600">Gender / Age:</span> {client.gender}, {client.age} yrs</div>
+              <div><span className="font-bold text-slate-600">Occupation:</span> {client.occupation || 'N/A'}</div>
+              <div><span className="font-bold text-slate-600">Phone:</span> {client.phone}</div>
+              <div><span className="font-bold text-slate-600">Emergency Contact:</span> {client.emergency_contact || 'N/A'}</div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 2: Presenting Complaints & HPI */}
+        {activeStep === 2 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 2: Presenting Complaints & History of Present Illness (HPI)</h3>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Presenting Complaints</label>
+              <textarea
+                rows={3}
+                value={presentingProblems}
+                onChange={(e) => setPresentingProblems(e.target.value)}
+                placeholder="Chief complaints reported by client in verbatim..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">History of Present Illness (HPI)</label>
+              <textarea
+                rows={4}
+                value={historyOfPresentIllness}
+                onChange={(e) => setHistoryOfPresentIllness(e.target.value)}
+                placeholder="Detailed timeline of onset, course, triggers, and intensity of symptoms..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Medical & Family */}
+        {activeStep === 3 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 3: Past Medical, Psychiatric & Family History</h3>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Medical History</label>
+              <textarea
+                rows={2}
+                value={medicalHistory}
+                onChange={(e) => setMedicalHistory(e.target.value)}
+                placeholder="Chronic medical conditions, medications, surgeries..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Past Psychiatric History</label>
+              <textarea
+                rows={2}
+                value={psychiatricHistory}
+                onChange={(e) => setPsychiatricHistory(e.target.value)}
+                placeholder="Previous therapy episodes, hospitalizations, psychiatric meds..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Family History</label>
+              <textarea
+                rows={2}
+                value={familyHistory}
+                onChange={(e) => setFamilyHistory(e.target.value)}
+                placeholder="Family psychiatric history, substance abuse, familial stressors..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Life History */}
+        {activeStep === 4 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 4: Personal, Educational, Occupational & Relationship History</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Educational Background</label>
+                <textarea
+                  rows={2}
+                  value={educationalHistory}
+                  onChange={(e) => setEducationalHistory(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Occupational History</label>
+                <textarea
+                  rows={2}
+                  value={occupationalHistory}
+                  onChange={(e) => setOccupationalHistory(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Relationship & Marital History</label>
+                <textarea
+                  rows={2}
+                  value={relationshipHistory}
+                  onChange={(e) => setRelationshipHistory(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Substance Use History</label>
+                <textarea
+                  rows={2}
+                  value={substanceUse}
+                  onChange={(e) => setSubstanceUse(e.target.value)}
+                  placeholder="Alcohol, tobacco, illicit substances..."
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Step 5: MSE & Clinical Observation */}
+        {activeStep === 5 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 5: Mental Status Examination (MSE) & Clinical Observation</h3>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Appearance</label>
+                <input
+                  type="text"
+                  value={mse.appearance || ''}
+                  onChange={(e) => setMse({ ...mse, appearance: e.target.value })}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Behavior & Eye Contact</label>
+                <input
+                  type="text"
+                  value={mse.behavior || ''}
+                  onChange={(e) => setMse({ ...mse, behavior: e.target.value })}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Mood & Affect</label>
+                <input
+                  type="text"
+                  value={mse.moodAndAffect || ''}
+                  onChange={(e) => setMse({ ...mse, moodAndAffect: e.target.value })}
+                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Clinical Observation Notes</label>
+              <textarea
+                rows={3}
+                value={clinicalObservation}
+                onChange={(e) => setClinicalObservation(e.target.value)}
+                placeholder="Therapist's observations on client affect, non-verbal cues, and interaction..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Step 6: Diagnosis & Plan */}
+        {activeStep === 6 && (
+          <div className="space-y-4">
+            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 6: Risk Assessment, Clinical Diagnosis & Treatment Plan</h3>
+            
+            {/* Risk Box */}
+            <div className="p-4 bg-rose-50 border border-rose-200 rounded-xl space-y-3">
+              <span className="text-xs font-extrabold text-rose-800 flex items-center gap-1.5 uppercase">
+                <ShieldAlert className="w-4 h-4" /> Risk Assessment Matrix
+              </span>
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-rose-900 mb-1">Suicide Risk</label>
+                  <select
+                    value={risk.suicideRisk || 'Low'}
+                    onChange={(e) => setRisk({ ...risk, suicideRisk: e.target.value as any })}
+                    className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                    <option value="Severe">Severe</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-rose-900 mb-1">Self-Harm Risk</label>
+                  <select
+                    value={risk.selfHarmRisk || 'Low'}
+                    onChange={(e) => setRisk({ ...risk, selfHarmRisk: e.target.value as any })}
+                    className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                    <option value="Severe">Severe</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-rose-900 mb-1">Homicide Risk</label>
+                  <select
+                    value={risk.homicideRisk || 'Low'}
+                    onChange={(e) => setRisk({ ...risk, homicideRisk: e.target.value as any })}
+                    className="w-full text-xs p-2 bg-white border border-rose-300 rounded-lg"
+                  >
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                    <option value="Severe">Severe</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Primary Clinical Diagnosis (DSM-5 / ICD-11)</label>
+              <input
+                type="text"
+                value={diagnosis.primaryDiagnosis || ''}
+                onChange={(e) => setDiagnosis({ ...diagnosis, primaryDiagnosis: e.target.value })}
+                placeholder="e.g. F41.1 Generalized Anxiety Disorder"
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Treatment Plan & Modality</label>
+              <textarea
+                rows={3}
+                value={treatmentGoals}
+                onChange={(e) => setTreatmentGoals(e.target.value)}
+                placeholder="Short-term & long-term therapy goals, modality (CBT, ACT, Psychodynamic)..."
+                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Wizard Footer Navigation */}
+      <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+        <button
+          onClick={() => setActiveStep(prev => Math.max(1, prev - 1))}
+          disabled={activeStep === 1}
+          className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl disabled:opacity-40 transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" /> Previous Step
+        </button>
+
+        {activeStep < 6 ? (
+          <button
+            onClick={() => setActiveStep(prev => Math.min(6, prev + 1))}
+            className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+          >
+            Next Step <ChevronRight className="w-4 h-4" />
+          </button>
+        ) : (
+          <button
+            onClick={handleSave}
+            disabled={submitting}
+            className="flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-md"
+          >
+            <CheckCircle2 className="w-4 h-4" /> Complete & Save
+          </button>
+        )}
+      </div>
+    </div>
+  );
+};
