@@ -84,6 +84,12 @@ DATABASES = {
 # Custom User Model
 AUTH_USER_MODEL = 'authentication.User'
 
+# Authentication Backends (supports username or email login, case-insensitive)
+AUTHENTICATION_BACKENDS = [
+    'authentication.backends.EmailOrUsernameModelBackend',
+    'django.contrib.auth.backends.ModelBackend',
+]
+
 # Django REST Framework Configuration
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
