@@ -1,11 +1,13 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Client, Psychologist } from '../types';
-import { UserPlus, Eye, UserCheck, Search, X, Edit3, Trash2, AlertCircle } from 'lucide-react';
+import { UserPlus, Eye, UserCheck, Search, X, Edit3, Trash2, AlertCircle, FileText } from 'lucide-react';
 
 export const Clients: React.FC = () => {
   const { effectiveRole } = useAuth();
+  const navigate = useNavigate();
   const [clients, setClients] = useState<Client[]>([]);
   const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
   const [search, setSearch] = useState('');
@@ -203,8 +205,15 @@ export const Clients: React.FC = () => {
                   {client.assigned_psychologist_detail?.user?.name ? `Dr. ${client.assigned_psychologist_detail.user.name}` : 'Unassigned'}
                 </td>
                 <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
-                  {/* CCD & Managers can Edit and Delete clients */}
-                  {effectiveRole !== 'psychologist' && (
+                  {/* Psychologist direct link to Clinical Case History */}
+                  {effectiveRole === 'psychologist' ? (
+                    <button
+                      onClick={() => navigate('/case-histories')}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 rounded-xl transition-all shadow-2xs"
+                    >
+                      <FileText className="w-3.5 h-3.5" /> Open Case History & Sessions
+                    </button>
+                  ) : (
                     <>
                       <button
                         onClick={() => openEditModal(client)}
