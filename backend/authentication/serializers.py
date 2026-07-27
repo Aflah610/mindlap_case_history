@@ -29,6 +29,23 @@ class UserSerializer(serializers.ModelSerializer):
             })
         return user
 
+    def update(self, instance, validated_data):
+        password = validated_data.pop('password', None)
+        if password:
+            instance.set_password(password)
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        instance.save()
+        if instance.role == 'ccd':
+            CCDStaff.objects.get_or_create(user=instance, defaults={'department': 'Intake & Client Care'})
+        elif instance.role == 'psychologist':
+            Psychologist.objects.get_or_create(user=instance, defaults={
+                'specialization': 'Clinical Psychology',
+                'qualification': 'M.Sc Clinical Psychology',
+                'license_number': f'PSY-LIC-{instance.id + 100}'
+            })
+        return instance
+
 
 class PsychologistSerializer(serializers.ModelSerializer):
     user = UserSerializer(read_only=True)

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, UserPlus, Key, Copy, Check, Trash2, Mail, Phone, Shield, AlertCircle, Filter } from 'lucide-react';
+import { UserCheck, UserPlus, Key, Copy, Check, Trash2, Edit3, Mail, Phone, Shield, AlertCircle, Filter } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,6 +20,7 @@ export const StaffManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [filterRole, setFilterRole] = useState<string>('all');
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<UserAccount | null>(null);
 
   // New Staff Form State
   const [username, setUsername] = useState('');
@@ -30,6 +31,15 @@ export const StaffManagement: React.FC = () => {
   const [role, setRole] = useState<'ccd' | 'psychologist' | 'operation_manager'>('ccd');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Edit Staff Form State
+  const [editName, setEditName] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editPhone, setEditPhone] = useState('');
+  const [editRole, setEditRole] = useState<string>('ccd');
+  const [editPassword, setEditPassword] = useState('');
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editErrorMsg, setEditErrorMsg] = useState<string | null>(null);
 
   // Created Credentials Banner
   const [lastCreated, setLastCreated] = useState<{ username: string; name: string; email: string; password: string; role: string } | null>(null);
@@ -95,6 +105,43 @@ export const StaffManagement: React.FC = () => {
     }
   };
 
+  const openEditModal = (u: UserAccount) => {
+    setEditingUser(u);
+    setEditName(u.name || '');
+    setEditEmail(u.email || '');
+    setEditPhone(u.phone || '');
+    setEditRole(u.role || 'ccd');
+    setEditPassword('');
+    setEditErrorMsg(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser) return;
+    setEditSubmitting(true);
+    setEditErrorMsg(null);
+
+    try {
+      const payload: any = {
+        name: editName,
+        email: editEmail,
+        phone: editPhone,
+        role: editRole,
+      };
+      if (editPassword) {
+        payload.password = editPassword;
+      }
+
+      await api.patch(`auth/users/${editingUser.id}/`, payload);
+      setEditingUser(null);
+      fetchUsers();
+    } catch (err: any) {
+      setEditErrorMsg(err.response?.data?.detail || 'Failed to update user account details.');
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
   const handleDeleteUser = async (id: number, usernameStr: string) => {
     if (!window.confirm(`Are you sure you want to remove staff account @${usernameStr}?`)) return;
     try {
@@ -149,7 +196,7 @@ export const StaffManagement: React.FC = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Staff Account Management</h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Manage active clinic staff accounts, create CCD users, and issue login credentials
+            Manage active clinic staff accounts, edit user details, and issue login credentials
           </p>
         </div>
 
@@ -278,7 +325,14 @@ export const StaffManagement: React.FC = () => {
                     {u.status || 'Active'}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right">
+                <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
+                  <button
+                    onClick={() => openEditModal(u)}
+                    className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all"
+                    title="Edit Staff Account"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </button>
                   {u.username !== 'admin' && (
                     <button
                       onClick={() => handleDeleteUser(u.id, u.username)}
@@ -301,6 +355,109 @@ export const StaffManagement: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      {/* Edit Staff Account Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-600" />
+                Edit Staff Account (@{editingUser.username})
+              </h3>
+              <button
+                onClick={() => setEditingUser(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {editErrorMsg && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-rose-700 text-xs font-semibold flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{editErrorMsg}</span>
+              </div>
+            )}
+
+            <form onSubmit={handleEditSubmit} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Account Role</label>
+                <select
+                  value={editRole}
+                  onChange={(e) => setEditRole(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-sky-800"
+                >
+                  <option value="ccd">CCD Staff (Intake & Scheduling Desk)</option>
+                  <option value="psychologist">Psychologist (Clinical Therapy)</option>
+                  <option value="operation_manager">Operation Manager</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">New Password (Leave blank to keep existing)</label>
+                <input
+                  type="password"
+                  value={editPassword}
+                  onChange={(e) => setEditPassword(e.target.value)}
+                  placeholder="Enter new password if changing..."
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sky-500"
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={editSubmitting}
+                  className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-sm"
+                >
+                  {editSubmitting ? 'Saving Changes...' : 'Save Account Changes'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Create User Modal */}
       {showCreateModal && (

@@ -62,13 +62,6 @@ export const OwnerDashboard: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-3">
-          <button
-            onClick={handleBackup}
-            className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-bold px-4 py-2.5 rounded-xl border border-slate-700 transition-all shadow-sm"
-          >
-            <Database className="w-4 h-4 text-teal-400" />
-            Backup Database
-          </button>
           <a
             href="http://127.0.0.1:8000/api/clients/export_csv/"
             target="_blank"
@@ -76,7 +69,7 @@ export const OwnerDashboard: React.FC = () => {
             className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
           >
             <Download className="w-4 h-4" />
-            Export Excel/CSV
+            Export Executive Data (CSV)
           </a>
         </div>
       </div>
