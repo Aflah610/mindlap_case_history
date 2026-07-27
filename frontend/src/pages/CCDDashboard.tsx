@@ -171,7 +171,7 @@ export const CCDDashboard: React.FC = () => {
             className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
           >
             <Calendar className="w-4 h-4" />
-            Book Appointment
+            Schedule Consultation
           </button>
         </div>
       </div>

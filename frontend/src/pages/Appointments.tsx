@@ -54,7 +54,7 @@ export const Appointments: React.FC = () => {
           onClick={() => setShowBookingModal(true)}
           className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-sm transition-all"
         >
-          <PlusCircle className="w-4 h-4" /> Book Appointment
+          <PlusCircle className="w-4 h-4" /> Schedule Consultation
         </button>
       </div>
 
