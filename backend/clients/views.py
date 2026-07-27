@@ -32,6 +32,16 @@ class ClientViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(created_by=self.request.user)
 
+    def update(self, request, *args, **kwargs):
+        if request.user.role == 'psychologist':
+            return Response({'detail': 'Psychologists are not permitted to edit client intake records.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().update(request, *args, **kwargs)
+
+    def destroy(self, request, *args, **kwargs):
+        if request.user.role == 'psychologist':
+            return Response({'detail': 'Psychologists are not permitted to delete client records.'}, status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)
+
     @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
     def dashboard_stats(self, request):
         """Returns comprehensive KPIs and statistics for Owner, Operation Manager, CCD, and Psychologists."""

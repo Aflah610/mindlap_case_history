@@ -32,6 +32,15 @@ export const CCDDashboard: React.FC = () => {
   const [occupation, setOccupation] = useState('');
   const [assignedPsychologistId, setAssignedPsychologistId] = useState('');
 
+  // Edit Client Form State
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editFullName, setEditFullName] = useState('');
+  const [editGender, setEditGender] = useState('Female');
+  const [editAge, setEditAge] = useState<number>(30);
+  const [editPhone, setEditPhone] = useState('');
+  const [editEmail, setEditEmail] = useState('');
+  const [editAssignedPsychologistId, setEditAssignedPsychologistId] = useState('');
+
   useEffect(() => {
     fetchCCDData();
   }, []);
@@ -86,6 +95,50 @@ export const CCDDashboard: React.FC = () => {
       fetchCCDData();
     } catch (err) {
       alert('Failed to update appointment status.');
+    }
+  };
+
+  const openEditClientModal = (c: Client) => {
+    setEditingClient(c);
+    setEditFullName(c.full_name || '');
+    setEditGender(c.gender || 'Female');
+    setEditAge(c.age || 30);
+    setEditPhone(c.phone || '');
+    setEditEmail(c.email || '');
+    setEditAssignedPsychologistId(c.assigned_psychologist ? String(c.assigned_psychologist) : '');
+  };
+
+  const handleEditClientSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient) return;
+    try {
+      const payload: any = {
+        full_name: editFullName,
+        gender: editGender,
+        age: editAge,
+        phone: editPhone,
+        email: editEmail,
+      };
+      if (editAssignedPsychologistId) {
+        payload.assigned_psychologist = parseInt(editAssignedPsychologistId, 10);
+      } else {
+        payload.assigned_psychologist = null;
+      }
+      await api.patch(`clients/${editingClient.id}/`, payload);
+      setEditingClient(null);
+      fetchCCDData();
+    } catch (err) {
+      alert('Failed to update client record.');
+    }
+  };
+
+  const handleDeleteClient = async (id: number, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete client record for "${name}"?`)) return;
+    try {
+      await api.delete(`clients/${id}/`);
+      fetchCCDData();
+    } catch (err) {
+      alert('Failed to delete client record.');
     }
   };
 
@@ -358,12 +411,26 @@ export const CCDDashboard: React.FC = () => {
                     <td className="p-3 font-semibold text-sky-700">
                       {c.assigned_psychologist_detail?.user?.name ? `Dr. ${c.assigned_psychologist_detail.user.name}` : 'Unassigned'}
                     </td>
-                    <td className="p-3 text-right">
+                    <td className="p-3 text-right flex items-center justify-end gap-1">
+                      <button
+                        onClick={() => openEditClientModal(c)}
+                        className="p-1 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all"
+                        title="Edit Client Information"
+                      >
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => handleDeleteClient(c.id, c.full_name)}
+                        className="p-1 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                        title="Delete Client Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         onClick={() => setShowBookingModal(true)}
                         className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 border border-teal-200 rounded-lg"
                       >
-                        <Calendar className="w-3 h-3" /> Book Appointment
+                        <Calendar className="w-3 h-3" /> Schedule Consultation
                       </button>
                     </td>
                   </tr>
@@ -549,6 +616,103 @@ export const CCDDashboard: React.FC = () => {
                   className="px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-sm"
                 >
                   {updatingApp ? 'Validating Slot...' : 'Confirm Reschedule'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Client Modal */}
+      {editingClient && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+              <h3 className="font-extrabold text-base text-slate-800 flex items-center gap-2">
+                <Edit3 className="w-5 h-5 text-sky-600" /> Edit Client Record ({editingClient.client_code})
+              </h3>
+              <button onClick={() => setEditingClient(null)} className="text-slate-400 font-bold">✕</button>
+            </div>
+            <form onSubmit={handleEditClientSubmit} className="space-y-3 text-xs font-medium">
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Full Name</label>
+                <input
+                  type="text"
+                  required
+                  value={editFullName}
+                  onChange={(e) => setEditFullName(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Age</label>
+                  <input
+                    type="number"
+                    value={editAge}
+                    onChange={(e) => setEditAge(Number(e.target.value))}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Gender</label>
+                  <select
+                    value={editGender}
+                    onChange={(e) => setEditGender(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  >
+                    <option value="Female">Female</option>
+                    <option value="Male">Male</option>
+                    <option value="Non-binary">Non-binary</option>
+                  </select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    value={editPhone}
+                    onChange={(e) => setEditPhone(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+                <div>
+                  <label className="block font-bold text-slate-700 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    value={editEmail}
+                    onChange={(e) => setEditEmail(e.target.value)}
+                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
+                  />
+                </div>
+              </div>
+              <div>
+                <label className="block font-bold text-slate-700 mb-1">Assigned Psychologist</label>
+                <select
+                  value={editAssignedPsychologistId}
+                  onChange={(e) => setEditAssignedPsychologistId(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500 font-bold text-sky-800"
+                >
+                  <option value="">-- Unassigned --</option>
+                  {therapists.map(p => (
+                    <option key={p.id} value={p.id}>Dr. {p.user?.name} ({p.specialization})</option>
+                  ))}
+                </select>
+              </div>
+              <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingClient(null)}
+                  className="px-4 py-2 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white font-bold rounded-xl shadow-sm"
+                >
+                  Save Changes
                 </button>
               </div>
             </form>
