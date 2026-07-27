@@ -6,7 +6,7 @@ import { Calendar, PlusCircle, RefreshCw } from 'lucide-react';
 import { AppointmentBookingModal } from '../components/AppointmentBookingModal';
 
 export const Appointments: React.FC = () => {
-  const { role } = useAuth();
+  const { effectiveRole } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [therapists, setTherapists] = useState<Psychologist[]>([]);
@@ -14,7 +14,7 @@ export const Appointments: React.FC = () => {
 
   useEffect(() => {
     fetchData();
-  }, [role]);
+  }, [effectiveRole]);
 
   const fetchData = async () => {
     try {
@@ -40,6 +40,20 @@ export const Appointments: React.FC = () => {
       alert('Failed to update status.');
     }
   };
+
+  if (effectiveRole === 'psychologist') {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-sky-200 shadow-sm text-center">
+        <div className="p-4 bg-sky-50 rounded-full text-sky-600 mb-4">
+          <Calendar className="w-12 h-12" />
+        </div>
+        <h2 className="text-xl font-bold text-slate-800">Use Psychologist Clinical Workspace</h2>
+        <p className="text-xs text-slate-500 max-w-md mt-2">
+          Psychologists view and track their consultation schedule directly through their dedicated <strong>Psychologist Workspace Dashboard</strong>.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

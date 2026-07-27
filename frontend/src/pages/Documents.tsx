@@ -34,7 +34,7 @@ export const Documents: React.FC = () => {
     }
   ]);
 
-  if (effectiveRole === 'ccd') {
+  if (effectiveRole === 'ccd' || effectiveRole === 'psychologist') {
     return (
       <div className="flex flex-col items-center justify-center p-12 bg-white rounded-xl border border-red-200 shadow-sm text-center">
         <div className="p-4 bg-red-50 rounded-full text-red-600 mb-4">
@@ -42,7 +42,7 @@ export const Documents: React.FC = () => {
         </div>
         <h2 className="text-xl font-bold text-slate-800">Access Restricted (HTTP 403 Forbidden)</h2>
         <p className="text-xs text-slate-500 max-w-md mt-2">
-          CCD Staff members are not permitted to access patient clinical documents and consent files due to HIPAA & Mindlap confidentiality policies.
+          Psychologists and CCD Staff are not permitted to access global clinical documents and consent repositories.
         </p>
       </div>
     );

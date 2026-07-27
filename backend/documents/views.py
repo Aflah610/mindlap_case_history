@@ -24,7 +24,7 @@ class DocumentViewSet(viewsets.ModelViewSet):
         if user.role in ['owner', 'admin', 'operation_manager'] or user.is_superuser:
             return Document.objects.all().order_by('-uploaded_at')
 
-        if user.role == 'ccd':
+        if user.role in ['ccd', 'psychologist']:
             return Document.objects.none()
 
         return Document.objects.filter(client__assigned_psychologist__user=user).order_by('-uploaded_at')
