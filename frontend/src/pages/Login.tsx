@@ -7,8 +7,8 @@ import { UserRole } from '../types';
 import { MindlapLogo } from '../components/MindlapLogo';
 
 export const Login: React.FC = () => {
-  const [username, setUsername] = useState('director.mindlap');
-  const [password, setPassword] = useState('Owner@123');
+  const [username, setUsername] = useState('admin');
+  const [password, setPassword] = useState('Admin@123');
   const [error, setError] = useState('');
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -42,24 +42,17 @@ export const Login: React.FC = () => {
   const handleQuickRoleSelect = (r: UserRole) => {
     switch (r) {
       case 'owner':
-        setUsername('director.mindlap');
-        setPassword('Owner@123');
-        break;
-      case 'operation_manager':
-        setUsername('ops.manager');
-        setPassword('Ops@123');
-        break;
-      case 'psychologist':
-        setUsername('dr.jenkins');
-        setPassword('Psych@123');
+      case 'admin':
+        setUsername('admin');
+        setPassword('Admin@123');
         break;
       case 'ccd':
-        setUsername('marcus.vance');
+        setUsername('delna');
         setPassword('Ccd@123');
         break;
       default:
-        setUsername('director.mindlap');
-        setPassword('Owner@123');
+        setUsername('admin');
+        setPassword('Admin@123');
     }
   };
 
@@ -118,31 +111,19 @@ export const Login: React.FC = () => {
 
         {/* Quick Role Login Presets */}
         <div className="mt-8 pt-6 border-t border-slate-200 text-center">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Quick Demo Login Presets</span>
+          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Quick Login Presets</span>
           <div className="grid grid-cols-2 gap-2">
             <button
               onClick={() => handleQuickRoleSelect('owner')}
               className="py-2 px-2 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors"
             >
-              👑 Owner (Director)
-            </button>
-            <button
-              onClick={() => handleQuickRoleSelect('operation_manager')}
-              className="py-2 px-2 bg-slate-100 hover:bg-teal-50 hover:text-teal-700 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors"
-            >
-              📋 Ops Manager
-            </button>
-            <button
-              onClick={() => handleQuickRoleSelect('psychologist')}
-              className="py-2 px-2 bg-slate-100 hover:bg-indigo-50 hover:text-indigo-700 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors"
-            >
-              🩺 Psychologist
+              👑 Owner / Admin
             </button>
             <button
               onClick={() => handleQuickRoleSelect('ccd')}
               className="py-2 px-2 bg-slate-100 hover:bg-amber-50 hover:text-amber-700 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors"
             >
-              📞 CCD Staff
+              📞 CCD Staff (@delna)
             </button>
           </div>
         </div>

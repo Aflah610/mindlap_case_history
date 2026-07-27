@@ -15,26 +15,11 @@ from audit_logs.models import AuditLog
 def seed():
     print("[+] Seeding Mindlap Clinical Database...")
 
-    # 1. Owner (Clinic Director)
-    owner_user, _ = User.objects.get_or_create(
-        username='director.mindlap',
-        defaults={
-            'name': 'Dr. Eleanor Vance (Owner)',
-            'email': 'director@mindlap.com',
-            'role': 'owner',
-            'phone': '+1 (555) 000-1111',
-            'is_staff': True,
-            'is_superuser': True
-        }
-    )
-    owner_user.set_password('Owner@123')
-    owner_user.save()
-
-    # Legacy admin mapped to owner
+    # Single Primary Owner Account (Admin)
     admin_user, _ = User.objects.get_or_create(
         username='admin',
         defaults={
-            'name': 'System Admin (Owner)',
+            'name': 'System Administrator (Owner)',
             'email': 'admin@mindlap.com',
             'role': 'owner',
             'phone': '+1 (555) 000-2222',
@@ -43,99 +28,8 @@ def seed():
         }
     )
     admin_user.set_password('Admin@123')
+    admin_user.role = 'owner'
     admin_user.save()
-
-    # 2. Operation Manager
-    ops_user, _ = User.objects.get_or_create(
-        username='ops.manager',
-        defaults={
-            'name': 'Rachel Green (Ops Manager)',
-            'email': 'rachel.ops@mindlap.com',
-            'role': 'operation_manager',
-            'phone': '+1 (555) 111-2233',
-            'is_staff': True
-        }
-    )
-    ops_user.set_password('Ops@123')
-    ops_user.save()
-
-    # 3. CCD Staff
-    ccd_user, _ = User.objects.get_or_create(
-        username='marcus.vance',
-        defaults={
-            'name': 'Marcus Vance (CCD Staff)',
-            'email': 'marcus.vance@mindlap.com',
-            'role': 'ccd',
-            'phone': '+1 (555) 876-5432'
-        }
-    )
-    ccd_user.set_password('Ccd@123')
-    ccd_user.save()
-    CCDStaff.objects.get_or_create(user=ccd_user, defaults={'department': 'Client Care & Intake Department'})
-
-    # 4. Psychologists
-    psy_user1, _ = User.objects.get_or_create(
-        username='dr.jenkins',
-        defaults={
-            'name': 'Sarah Jenkins',
-            'email': 'dr.jenkins@mindlap.com',
-            'role': 'psychologist',
-            'phone': '+1 (555) 234-5678'
-        }
-    )
-    psy_user1.set_password('Psych@123')
-    psy_user1.save()
-    p1, _ = Psychologist.objects.get_or_create(
-        user=psy_user1,
-        defaults={
-            'specialization': 'CBT, Trauma & Anxiety',
-            'qualification': 'Ph.D. Clinical Psychology',
-            'experience': '12 years',
-            'license_number': 'PSY-LIC-99201'
-        }
-    )
-
-    psy_user2, _ = User.objects.get_or_create(
-        username='dr.anas',
-        defaults={
-            'name': 'Anas Khan',
-            'email': 'dr.anas@mindlap.com',
-            'role': 'psychologist',
-            'phone': '+1 (555) 345-6789'
-        }
-    )
-    psy_user2.set_password('Psych@123')
-    psy_user2.save()
-    p2, _ = Psychologist.objects.get_or_create(
-        user=psy_user2,
-        defaults={
-            'specialization': 'Adult ADHD & Depressive Disorders',
-            'qualification': 'Psy.D. Clinical Neuropsychology',
-            'experience': '9 years',
-            'license_number': 'PSY-LIC-88105'
-        }
-    )
-
-    psy_user3, _ = User.objects.get_or_create(
-        username='dr.rahul',
-        defaults={
-            'name': 'Rahul Sharma',
-            'email': 'dr.rahul@mindlap.com',
-            'role': 'psychologist',
-            'phone': '+1 (555) 456-7890'
-        }
-    )
-    psy_user3.set_password('Psych@123')
-    psy_user3.save()
-    p3, _ = Psychologist.objects.get_or_create(
-        user=psy_user3,
-        defaults={
-            'specialization': 'Child & Adolescent Counseling',
-            'qualification': 'M.Sc. Counseling Psychology',
-            'experience': '7 years',
-            'license_number': 'PSY-LIC-77302'
-        }
-    )
 
     # 5. Clients
     c1, _ = Client.objects.get_or_create(
