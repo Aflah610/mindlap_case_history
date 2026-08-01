@@ -1,5 +1,3 @@
-import csv
-from django.http import HttpResponse
 from rest_framework import viewsets, permissions, filters, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -85,22 +83,3 @@ class ClientViewSet(viewsets.ModelViewSet):
             'completed_reports': completed_reports,
             'therapist_workload': workload,
         })
-
-    @action(detail=False, methods=['get'], permission_classes=[permissions.IsAuthenticated])
-    def export_csv(self, request):
-        """Allows Owner and Operation Manager to export clients data as CSV."""
-        if request.user.role not in ['owner', 'admin', 'operation_manager']:
-            return Response({'detail': 'Permission denied. Only Owner or Operation Manager can export.'}, status=status.HTTP_403_FORBIDDEN)
-
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = f'attachment; filename="mindlap_clients_{timezone.now().strftime("%Y%m%d")}.csv"'
-
-        writer = csv.writer(response)
-        writer.writerow(['Client Code', 'Full Name', 'Gender', 'Age', 'Phone', 'Email', 'Assigned Therapist', 'Created At'])
-
-        clients = Client.objects.all().order_by('-created_at')
-        for c in clients:
-            therapist_name = f"Dr. {c.assigned_psychologist.user.name}" if c.assigned_psychologist else "Unassigned"
-            writer.writerow([c.client_code, c.full_name, c.gender, c.age, c.phone, c.email or '', therapist_name, c.created_at.strftime('%Y-%m-%d %H:%M')])
-
-        return response

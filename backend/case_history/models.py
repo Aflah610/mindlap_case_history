@@ -44,7 +44,7 @@ class SessionNote(models.Model):
     )
 
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name='session_notes')
-    psychologist = models.ForeignKey(Psychologist, on_delete=models.CASCADE, related_name='session_notes')
+    psychologist = models.ForeignKey(Psychologist, on_delete=models.SET_NULL, null=True, blank=True, related_name='session_notes')
     session_number = models.IntegerField(default=1)
     session_date = models.DateField()
     duration = models.CharField(max_length=50, default='50 mins')

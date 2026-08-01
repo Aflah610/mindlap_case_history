@@ -13,7 +13,6 @@ urlpatterns = [
     path('api/', include('clients.urls')),
     path('api/', include('case_history.urls')),
     path('api/', include('appointments.urls')),
-    path('api/', include('documents.urls')),
     path('api/', include('audit_logs.urls')),
 ]
 

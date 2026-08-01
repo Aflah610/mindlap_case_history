@@ -8,11 +8,9 @@ import { Dashboard } from './pages/Dashboard';
 import { Clients } from './pages/Clients';
 import { CaseHistories } from './pages/CaseHistories';
 import { Appointments } from './pages/Appointments';
-import { Documents } from './pages/Documents';
 import { StaffManagement } from './pages/StaffManagement';
 import { AuditLogs } from './pages/AuditLogs';
 import { OperationManagerDashboard } from './pages/OperationManagerDashboard';
-import { ExportDataPage } from './pages/ExportDataPage';
 
 const ProtectedLayout: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -33,10 +31,8 @@ const ProtectedLayout: React.FC = () => {
             <Route path="/clients" element={<Clients />} />
             <Route path="/case-histories" element={<CaseHistories />} />
             <Route path="/appointments" element={<Appointments />} />
-            <Route path="/documents" element={<Documents />} />
             <Route path="/staff" element={<StaffManagement />} />
             <Route path="/audit-logs" element={<AuditLogs />} />
-            <Route path="/export" element={<ExportDataPage />} />
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>
         </main>

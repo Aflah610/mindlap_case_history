@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Client, Psychologist } from '../types';
-import { UserPlus, Eye, UserCheck, Search, X, Edit3, Trash2, AlertCircle, FileText } from 'lucide-react';
+import { UserPlus, Eye, UserCheck, Search, X, Edit3, Trash2, AlertCircle, FileText, Download, Filter } from 'lucide-react';
+import { PDFModal } from '../components/PDFModal';
 
 export const Clients: React.FC = () => {
   const { effectiveRole } = useAuth();
@@ -11,8 +12,10 @@ export const Clients: React.FC = () => {
   const [clients, setClients] = useState<Client[]>([]);
   const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
   const [search, setSearch] = useState('');
+  const [selectedPsychologistFilter, setSelectedPsychologistFilter] = useState<string>('all');
   const [showRegModal, setShowRegModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [selectedClientForReport, setSelectedClientForReport] = useState<Client | null>(null);
 
   // New Client Form state
   const [newClientData, setNewClientData] = useState({
@@ -63,6 +66,9 @@ export const Clients: React.FC = () => {
       console.error('Failed to load psychologists:', e);
     }
   };
+
+  const activePsychologists = psychologists.filter(p => p.user?.status !== 'inactive' && p.user?.is_active !== false);
+  const formerPsychologists = psychologists.filter(p => p.user?.status === 'inactive' || p.user?.is_active === false);
 
   const handleRegisterSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -136,11 +142,37 @@ export const Clients: React.FC = () => {
     }
   };
 
-  const filteredClients = clients.filter(c =>
-    (c.full_name && c.full_name.toLowerCase().includes(search.toLowerCase())) ||
-    (c.client_code && c.client_code.toLowerCase().includes(search.toLowerCase())) ||
-    (c.phone && c.phone.includes(search))
-  );
+  const handleDownloadPDFDirect = async (client: Client) => {
+    try {
+      const response = await api.get(`case-history/${client.id}/pdf/`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Case_History_${client.client_code}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to download PDF report.');
+    }
+  };
+
+  const filteredClients = clients.filter(c => {
+    const matchesSearch =
+      (c.full_name && c.full_name.toLowerCase().includes(search.toLowerCase())) ||
+      (c.client_code && c.client_code.toLowerCase().includes(search.toLowerCase())) ||
+      (c.phone && c.phone.includes(search));
+
+    const matchesPsychologist =
+      selectedPsychologistFilter === 'all' ||
+      (selectedPsychologistFilter === 'unassigned' && !c.assigned_psychologist) ||
+      String(c.assigned_psychologist) === selectedPsychologistFilter;
+
+    return matchesSearch && matchesPsychologist;
+  });
 
   return (
     <div className="space-y-6">
@@ -149,7 +181,7 @@ export const Clients: React.FC = () => {
         <div>
           <h1 className="text-2xl font-extrabold text-slate-800 tracking-tight">Client Directory</h1>
           <p className="text-xs font-semibold text-slate-500 mt-1">
-            Manage intake registrations, basic demographics, and psychologist assignments
+            Manage intake registrations, basic demographics, clinical reports, and therapist assignments
           </p>
         </div>
         {effectiveRole !== 'psychologist' && (
@@ -162,19 +194,58 @@ export const Clients: React.FC = () => {
         )}
       </div>
 
-      {/* Table Card */}
+      {/* Filter & Search Toolbar */}
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-200 flex items-center justify-between gap-4">
-          <div className="relative w-80">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              type="text"
-              placeholder="Search by Name, Client ID or Phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-sky-500 font-medium"
-            />
+        <div className="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            {/* Search Input */}
+            <div className="relative w-72">
+              <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                type="text"
+                placeholder="Search Name, ID or Phone..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-9 pr-4 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-sky-500 font-medium"
+              />
+            </div>
+
+            {/* Filter by Psychologist Dropdown */}
+            {(effectiveRole === 'owner' || effectiveRole === 'admin' || effectiveRole === 'operation_manager') && (
+              <div className="flex items-center gap-1.5">
+                <Filter className="w-3.5 h-3.5 text-slate-400" />
+                <select
+                  value={selectedPsychologistFilter}
+                  onChange={(e) => setSelectedPsychologistFilter(e.target.value)}
+                  className="px-3 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:border-sky-500 font-bold text-slate-800"
+                >
+                  <option value="all">Filter by Psychologist (All)</option>
+                  <option value="unassigned">Unassigned Clients</option>
+                  
+                  {activePsychologists.length > 0 && (
+                    <optgroup label="🟢 Works Now (Active Psychologists)">
+                      {activePsychologists.map(p => (
+                        <option key={p.id} value={p.id}>
+                          Dr. {p.user?.name} ({p.specialization})
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+
+                  {formerPsychologists.length > 0 && (
+                    <optgroup label="🔴 Worked Previously (Former Psychologists)" className="text-rose-600 font-bold">
+                      {formerPsychologists.map(p => (
+                        <option key={p.id} value={p.id} className="text-rose-600 font-bold">
+                          🔴 Dr. {p.user?.name} (Former - Worked Previously)
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </div>
+            )}
           </div>
+
           <span className="text-xs font-semibold text-slate-500">
             Showing {filteredClients.length} of {clients.length} Clients
           </span>
@@ -192,58 +263,102 @@ export const Clients: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-            {filteredClients.map((client) => (
-              <tr key={client.id} className="hover:bg-slate-50">
-                <td className="px-6 py-4 font-mono font-bold text-slate-800">{client.client_code}</td>
-                <td className="px-6 py-4 font-bold text-slate-900">{client.full_name}</td>
-                <td className="px-6 py-4 text-slate-600">{client.age} yrs ({client.gender})</td>
-                <td className="px-6 py-4">
-                  <div className="text-slate-800 font-semibold">{client.phone || '—'}</div>
-                  <div className="text-[11px] text-slate-400">{client.email || '—'}</div>
-                </td>
-                <td className="px-6 py-4 font-semibold text-sky-700">
-                  {client.assigned_psychologist_detail?.user?.name ? `Dr. ${client.assigned_psychologist_detail.user.name}` : 'Unassigned'}
-                </td>
-                <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
-                  {/* Psychologist direct link to Clinical Case History */}
-                  {effectiveRole === 'psychologist' ? (
-                    <button
-                      onClick={() => navigate('/case-histories')}
-                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 rounded-xl transition-all shadow-2xs"
-                    >
-                      <FileText className="w-3.5 h-3.5" /> Open Case History & Sessions
-                    </button>
-                  ) : (
-                    <>
-                      <button
-                        onClick={() => openEditModal(client)}
-                        className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all"
-                        title="Edit Client Information"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </button>
-                      <button
-                        onClick={() => handleDeleteClient(client.id, client.full_name)}
-                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                        title="Delete Client Record"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {filteredClients.map((client) => {
+              const psyUser = client.assigned_psychologist_detail?.user;
+              const isFormerPsychologist = psyUser?.status === 'inactive' || psyUser?.is_active === false;
+
+              return (
+                <tr key={client.id} className="hover:bg-slate-50">
+                  <td className="px-6 py-4 font-mono font-bold text-slate-800">{client.client_code}</td>
+                  <td className="px-6 py-4 font-bold text-slate-900">{client.full_name}</td>
+                  <td className="px-6 py-4 text-slate-600">{client.age} yrs ({client.gender})</td>
+                  <td className="px-6 py-4">
+                    <div className="text-slate-800 font-semibold">{client.phone || '—'}</div>
+                    <div className="text-[11px] text-slate-400">{client.email || '—'}</div>
+                  </td>
+                  <td className="px-6 py-4 font-semibold">
+                    {psyUser?.name ? (
+                      isFormerPsychologist ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs">
+                          🔴 Dr. {psyUser.name} (Former - Worked Previously)
+                        </span>
+                      ) : (
+                        <span className="text-sky-700 font-bold">
+                          Dr. {psyUser.name}
+                        </span>
+                      )
+                    ) : (
+                      <span className="text-slate-400 italic">Unassigned</span>
+                    )}
+                  </td>
+                  <td className="px-6 py-4 text-right flex items-center justify-end gap-1.5">
+                    {/* Report View & Download actions for non-CCD roles */}
+                    {effectiveRole !== 'ccd' && (
+                      <>
+                        <button
+                          onClick={() => setSelectedClientForReport(client)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 rounded-xl transition-all shadow-2xs"
+                          title="View Mindlap Clinical Report"
+                        >
+                          <Eye className="w-3.5 h-3.5" /> View Report
+                        </button>
+
+                        <button
+                          onClick={() => handleDownloadPDFDirect(client)}
+                          className="flex items-center gap-1 px-2.5 py-1.5 text-xs font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-xl transition-all"
+                          title="Download Mindlap PDF Report"
+                        >
+                          <Download className="w-3.5 h-3.5" /> PDF
+                        </button>
+                      </>
+                    )}
+
+                    {effectiveRole !== 'psychologist' && effectiveRole !== 'ccd' && (
+                      <>
+                        <button
+                          onClick={() => openEditModal(client)}
+                          className="p-1.5 text-slate-400 hover:text-sky-600 hover:bg-sky-50 rounded-lg transition-all"
+                          title="Edit Client Information"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleDeleteClient(client.id, client.full_name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                          title="Delete Client Record"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </>
+                    )}
+
+                    {effectiveRole === 'ccd' && (
+                      <span className="text-[11px] text-amber-700 font-semibold italic bg-amber-50 px-2 py-1 rounded">
+                        Registration Only
+                      </span>
+                    )}
+                  </td>
+                </tr>
+              );
+            })}
             {filteredClients.length === 0 && (
               <tr>
                 <td colSpan={6} className="px-6 py-8 text-center text-slate-400 italic">
-                  No registered clients found.
+                  No registered clients found matching current filters.
                 </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
+
+      {/* Report Modal */}
+      {selectedClientForReport && (
+        <PDFModal
+          client={selectedClientForReport}
+          onClose={() => setSelectedClientForReport(null)}
+        />
+      )}
 
       {/* Register Client Modal */}
       {showRegModal && (
@@ -320,7 +435,7 @@ export const Clients: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500 font-bold text-sky-800"
                 >
                   <option value="">-- Assign Later --</option>
-                  {psychologists.map(p => (
+                  {activePsychologists.map(p => (
                     <option key={p.id} value={p.id}>Dr. {p.user?.name} ({p.specialization})</option>
                   ))}
                 </select>
@@ -417,9 +532,18 @@ export const Clients: React.FC = () => {
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500 font-bold text-sky-800"
                 >
                   <option value="">-- Unassigned --</option>
-                  {psychologists.map(p => (
-                    <option key={p.id} value={p.id}>Dr. {p.user?.name} ({p.specialization})</option>
-                  ))}
+                  <optgroup label="🟢 Active Psychologists">
+                    {activePsychologists.map(p => (
+                      <option key={p.id} value={p.id}>Dr. {p.user?.name} ({p.specialization})</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="🔴 Former Psychologists (Worked Previously)" className="text-rose-600">
+                    {formerPsychologists.map(p => (
+                      <option key={p.id} value={p.id} className="text-rose-600 font-bold">
+                        🔴 Dr. {p.user?.name} (Former)
+                      </option>
+                    ))}
+                  </optgroup>
                 </select>
               </div>
               <div className="pt-3 flex justify-end gap-2 border-t border-slate-100">

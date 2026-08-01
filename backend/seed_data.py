@@ -9,13 +9,12 @@ from authentication.models import User, Psychologist, CCDStaff
 from clients.models import Client
 from case_history.models import CaseHistory, SessionNote
 from appointments.models import Appointment
-from documents.models import Document
 from audit_logs.models import AuditLog
 
 def seed():
     print("[+] Seeding Mindlap Clinical Database...")
 
-    # Single Primary Owner Account (Admin)
+    # 1. Primary Owner Account (Admin)
     admin_user, _ = User.objects.get_or_create(
         username='admin',
         defaults={
@@ -30,8 +29,66 @@ def seed():
     admin_user.set_password('Admin@123')
     admin_user.role = 'owner'
     admin_user.save()
+    owner_user = admin_user
 
-    # 5. Clients
+    # 2. CCD Staff
+    ccd_user, _ = User.objects.get_or_create(
+        username='marcus.vance',
+        defaults={
+            'name': 'Marcus Vance',
+            'email': 'marcus.vance@mindlap.com',
+            'role': 'ccd',
+            'phone': '+1 (555) 111-2222'
+        }
+    )
+    ccd_user.set_password('Ccd@123')
+    ccd_user.save()
+    CCDStaff.objects.get_or_create(user=ccd_user, defaults={'department': 'Client Care Department'})
+
+    # 3. Psychologists
+    p1_user, _ = User.objects.get_or_create(
+        username='dr.jenkins',
+        defaults={
+            'name': 'Sarah Jenkins',
+            'email': 'dr.jenkins@mindlap.com',
+            'role': 'psychologist',
+            'phone': '+1 (555) 222-3333'
+        }
+    )
+    p1_user.set_password('Psych@123')
+    p1_user.save()
+    p1, _ = Psychologist.objects.get_or_create(
+        user=p1_user,
+        defaults={
+            'specialization': 'Clinical Psychology (CBT, Anxiety)',
+            'qualification': 'Ph.D. Clinical Psychology',
+            'experience': '10 years',
+            'license_number': 'PSY-LIC-101'
+        }
+    )
+
+    p2_user, _ = User.objects.get_or_create(
+        username='dr.morgan',
+        defaults={
+            'name': 'Alex Morgan',
+            'email': 'dr.morgan@mindlap.com',
+            'role': 'psychologist',
+            'phone': '+1 (555) 333-4444'
+        }
+    )
+    p2_user.set_password('Psych@123')
+    p2_user.save()
+    p2, _ = Psychologist.objects.get_or_create(
+        user=p2_user,
+        defaults={
+            'specialization': 'Neuropsychology & ADHD',
+            'qualification': 'Psy.D.',
+            'experience': '7 years',
+            'license_number': 'PSY-LIC-102'
+        }
+    )
+
+    # 4. Clients
     c1, _ = Client.objects.get_or_create(
         client_code='ML-2026-001',
         defaults={
@@ -86,7 +143,7 @@ def seed():
         }
     )
 
-    # 6. Case History
+    # 5. Case History
     CaseHistory.objects.get_or_create(
         client=c1,
         defaults={
@@ -135,7 +192,7 @@ def seed():
         }
     )
 
-    # 7. Session Notes
+    # 6. Session Notes
     SessionNote.objects.get_or_create(
         client=c1,
         psychologist=p1,
@@ -154,7 +211,7 @@ def seed():
         }
     )
 
-    # 8. Appointments
+    # 7. Appointments
     from django.utils.timezone import make_aware
     today_dt = datetime.now()
 
@@ -179,7 +236,7 @@ def seed():
         defaults={'status': 'Scheduled', 'consultation_type': 'Follow-up', 'mode': 'Offline', 'remarks': 'ADHD evaluation review'}
     )
 
-    # 9. Audit Logs
+    # 8. Audit Logs
     AuditLog.objects.get_or_create(
         user=owner_user,
         action='SYSTEM_INIT',

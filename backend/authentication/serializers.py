@@ -5,7 +5,7 @@ from .models import User, Psychologist, CCDStaff
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'username', 'name', 'email', 'phone', 'role', 'status', 'password', 'created_at']
+        fields = ['id', 'username', 'name', 'email', 'phone', 'role', 'status', 'is_active', 'password', 'created_at']
         extra_kwargs = {'password': {'write_only': True, 'required': False}}
 
     def create(self, validated_data):
@@ -87,6 +87,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
             'name': self.user.name,
             'email': self.user.email,
             'role': self.user.role,
-            'status': self.user.status
+            'status': self.user.status,
+            'is_active': self.user.is_active
         }
         return data

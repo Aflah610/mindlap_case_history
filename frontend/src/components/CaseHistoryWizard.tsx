@@ -1,22 +1,28 @@
 import React, { useState } from 'react';
-import { Client, CaseHistory, MentalStatusExamination, RiskAssessment, ClinicalDiagnosis, TreatmentPlan } from '../types';
+import { Client, CaseHistory, MentalStatusExamination, RiskAssessment, ClinicalDiagnosis, TreatmentPlan, SessionNote } from '../types';
 import { api } from '../services/api';
 import {
   FileText, CheckCircle2, ChevronRight, ChevronLeft, Save,
-  AlertCircle, ShieldAlert, HeartPulse, Sparkles
+  AlertCircle, ShieldAlert, HeartPulse, Sparkles, Clock, Plus
 } from 'lucide-react';
+import { SessionTimeline } from './SessionTimeline';
 
 interface CaseHistoryWizardProps {
   client: Client;
   existingCaseHistory?: CaseHistory | null;
+  sessionNotes?: SessionNote[];
   onSaveSuccess: () => void;
+  onRefreshSessionNotes?: () => void;
 }
 
 export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
   client,
   existingCaseHistory,
-  onSaveSuccess
+  sessionNotes = [],
+  onSaveSuccess,
+  onRefreshSessionNotes
 }) => {
+  const [mainTab, setMainTab] = useState<'assessment' | 'sessions'>('assessment');
   const [activeStep, setActiveStep] = useState<number>(1);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
@@ -124,28 +130,75 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
 
   return (
     <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
-      {/* Wizard Header */}
+      {/* Top Header */}
       <div className="flex items-center justify-between border-b border-slate-100 pb-4">
         <div>
           <div className="inline-flex items-center gap-1.5 bg-sky-50 text-sky-700 text-[11px] font-bold px-3 py-1 rounded-full uppercase">
-            <Sparkles className="w-3.5 h-3.5" /> Clinical Intake Wizard
+            <Sparkles className="w-3.5 h-3.5" /> Clinical Case History & Assessment
           </div>
           <h2 className="text-lg font-extrabold text-slate-800 mt-1">
-            Clinical Case History — {client.full_name} ({client.client_code})
+            {client.full_name} ({client.client_code})
           </h2>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={submitting}
-          className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
-        >
-          <Save className="w-4 h-4" />
-          {submitting ? 'Saving...' : 'Save Case History'}
-        </button>
+        {mainTab === 'assessment' && (
+          <button
+            onClick={handleSave}
+            disabled={submitting}
+            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+          >
+            <Save className="w-4 h-4" />
+            {submitting ? 'Saving...' : 'Save Case History'}
+          </button>
+        )}
       </div>
 
-      {saveMessage && (
+      {/* Session Counter Tracker Banner */}
+      <div className="bg-gradient-to-r from-purple-50 via-sky-50 to-purple-50 border border-purple-200 p-4 rounded-xl flex items-center justify-between text-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-purple-600 text-white rounded-xl font-black text-sm">
+            #{sessionNotes.length + 1}
+          </div>
+          <div>
+            <div className="font-extrabold text-slate-800">
+              Session Tracking: <span className="text-purple-700 font-extrabold">{sessionNotes.length} Sessions Already Written</span>
+            </div>
+            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
+              Next Session You Are Writing: <strong className="text-purple-900 font-black">Session #{sessionNotes.length + 1}</strong>
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setMainTab('assessment')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              mainTab === 'assessment' ? 'bg-sky-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            📋 Assessment Area
+          </button>
+
+          <button
+            onClick={() => setMainTab('sessions')}
+            className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all ${
+              mainTab === 'sessions' ? 'bg-purple-600 text-white shadow-sm' : 'bg-white border border-slate-300 text-slate-700 hover:bg-slate-50'
+            }`}
+          >
+            📝 Session Notes ({sessionNotes.length})
+          </button>
+        </div>
+      </div>
+
+      {mainTab === 'sessions' ? (
+        <SessionTimeline
+          client={client}
+          sessionNotes={sessionNotes}
+          onRefresh={onRefreshSessionNotes || onSaveSuccess}
+        />
+      ) : (
+        <div className="space-y-6">
+          {saveMessage && (
         <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
           <CheckCircle2 className="w-4 h-4 text-emerald-600" />
           {saveMessage}
@@ -425,34 +478,53 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
           </div>
         )}
       </div>
+          {/* Footer Navigation */}
+          <div className="flex items-center justify-between border-t border-slate-100 pt-4">
+            <button
+              onClick={() => setActiveStep(prev => Math.max(1, prev - 1))}
+              disabled={activeStep === 1}
+              className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl disabled:opacity-40 transition-colors"
+            >
+              <ChevronLeft className="w-4 h-4" /> Previous Step
+            </button>
 
-      {/* Wizard Footer Navigation */}
-      <div className="flex items-center justify-between border-t border-slate-100 pt-4">
-        <button
-          onClick={() => setActiveStep(prev => Math.max(1, prev - 1))}
-          disabled={activeStep === 1}
-          className="flex items-center gap-1.5 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl disabled:opacity-40 transition-colors"
-        >
-          <ChevronLeft className="w-4 h-4" /> Previous Step
-        </button>
+            {activeStep < 6 ? (
+              <button
+                onClick={() => setActiveStep(prev => Math.min(6, prev + 1))}
+                className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
+              >
+                Next Step <ChevronRight className="w-4 h-4" />
+              </button>
+            ) : (
+              <button
+                onClick={handleSave}
+                disabled={submitting}
+                className="flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-md"
+              >
+                <CheckCircle2 className="w-4 h-4" /> Complete & Save
+              </button>
+            )}
+          </div>
 
-        {activeStep < 6 ? (
-          <button
-            onClick={() => setActiveStep(prev => Math.min(6, prev + 1))}
-            className="flex items-center gap-1.5 px-4 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl transition-all shadow-sm"
-          >
-            Next Step <ChevronRight className="w-4 h-4" />
-          </button>
-        ) : (
-          <button
-            onClick={handleSave}
-            disabled={submitting}
-            className="flex items-center gap-1.5 px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-extrabold rounded-xl transition-all shadow-md"
-          >
-            <CheckCircle2 className="w-4 h-4" /> Complete & Save
-          </button>
-        )}
-      </div>
+          {/* Integrated Session Notes Timeline */}
+          <div className="mt-8 pt-6 border-t-2 border-dashed border-slate-200">
+            <div className="mb-4 flex items-center justify-between">
+              <h3 className="text-sm font-extrabold text-slate-800 flex items-center gap-2">
+                <Clock className="w-4 h-4 text-purple-600" />
+                Therapy Session Notes Timeline for {client.full_name}
+              </h3>
+              <span className="text-xs font-extrabold bg-purple-100 text-purple-800 px-3 py-1 rounded-full">
+                Total Recorded: {sessionNotes.length} Sessions | Next: #{sessionNotes.length + 1}
+              </span>
+            </div>
+            <SessionTimeline
+              client={client}
+              sessionNotes={sessionNotes}
+              onRefresh={onRefreshSessionNotes || onSaveSuccess}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };

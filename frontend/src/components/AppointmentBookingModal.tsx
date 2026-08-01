@@ -16,10 +16,28 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
   onClose,
   onSuccess
 }) => {
+  const getTodayString = () => {
+    const d = new Date();
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
   const [clientId, setClientId] = useState<string>('');
   const [clientSearch, setClientSearch] = useState<string>('');
   const [psychologistId, setPsychologistId] = useState<string>('');
-  const [appointmentDate, setAppointmentDate] = useState<string>('');
+
+  // 12-Hour AM/PM Time Range States ("This Time to This Time")
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayString());
+  const [startHour, setStartHour] = useState<string>('10');
+  const [startMinute, setStartMinute] = useState<string>('00');
+  const [startPeriod, setStartPeriod] = useState<'AM' | 'PM'>('AM');
+
+  const [endHour, setEndHour] = useState<string>('11');
+  const [endMinute, setEndMinute] = useState<string>('00');
+  const [endPeriod, setEndPeriod] = useState<'AM' | 'PM'>('AM');
+
   const [consultationType, setConsultationType] = useState<'Initial Consultation' | 'Follow-up'>('Initial Consultation');
   const [mode, setMode] = useState<'Offline' | 'Online'>('Offline');
   const [remarks, setRemarks] = useState<string>('');
@@ -39,6 +57,13 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
 
   const selectedClient = clients.find(c => String(c.id) === clientId);
 
+  const convertTo24Hour = (hourStr: string, period: 'AM' | 'PM') => {
+    let h = parseInt(hourStr, 10);
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    return String(h).padStart(2, '0');
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg(null);
@@ -46,16 +71,25 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
       setErrorMsg('Please search and select a client for this consultation.');
       return;
     }
+    if (!psychologistId) {
+      setErrorMsg('Please select an assigned psychologist.');
+      return;
+    }
     setSubmitting(true);
 
     try {
+      const start24 = convertTo24Hour(startHour, startPeriod);
+      const isoDate = `${selectedDate}T${start24}:${startMinute}:00Z`;
+      const timeRangeLabel = `${startHour}:${startMinute} ${startPeriod} to ${endHour}:${endMinute} ${endPeriod}`;
+      const updatedRemarks = remarks.trim() ? `[Slot: ${timeRangeLabel}] ${remarks}` : `[Slot: ${timeRangeLabel}]`;
+
       await api.post('appointments/', {
         client: parseInt(clientId, 10),
         psychologist: parseInt(psychologistId, 10),
-        appointment_date: appointmentDate,
+        appointment_date: isoDate,
         consultation_type: consultationType,
         mode: mode,
-        remarks: remarks,
+        remarks: updatedRemarks,
         status: 'Scheduled'
       });
       onSuccess();
@@ -183,14 +217,19 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
           {/* Date & Mode Grid */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Consultation Date & Time <span className="text-rose-500">*</span></label>
-              <input
-                type="datetime-local"
-                value={appointmentDate}
-                onChange={(e) => setAppointmentDate(e.target.value)}
-                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500"
-                required
-              />
+              <label className="block text-xs font-bold text-slate-700 mb-1">
+                Consultation Date <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative">
+                <Calendar className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="w-full text-xs pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500 font-semibold text-slate-800"
+                  required
+                />
+              </div>
             </div>
 
             <div>
@@ -198,11 +237,111 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
               <select
                 value={mode}
                 onChange={(e) => setMode(e.target.value as 'Offline' | 'Online')}
-                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500 font-medium"
+                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl focus:outline-none focus:border-sky-500 font-medium text-slate-800"
               >
                 <option value="Offline">Offline (In-Clinic Session)</option>
                 <option value="Online">Online (Video Consultation)</option>
               </select>
+            </div>
+          </div>
+
+          {/* 12-Hour AM/PM Time Range Picker ("This Time to This Time") */}
+          <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3.5 space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-extrabold text-slate-800 flex items-center gap-1.5">
+                <Clock className="w-4 h-4 text-sky-600" />
+                Select Consultation Time Slot
+              </label>
+              <span className="text-[10px] font-bold uppercase tracking-wider bg-sky-100 text-sky-800 px-2 py-0.5 rounded-full">
+                12-Hour AM / PM Format
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 items-center">
+              {/* Start Time */}
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Start Time</span>
+                <div className="flex items-center gap-1">
+                  <select
+                    value={startHour}
+                    onChange={(e) => setStartHour(e.target.value)}
+                    className="text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-sky-500"
+                  >
+                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span className="font-bold text-slate-400">:</span>
+                  <select
+                    value={startMinute}
+                    onChange={(e) => setStartMinute(e.target.value)}
+                    className="text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-sky-500"
+                  >
+                    {['00','15','30','45'].map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setStartPeriod(startPeriod === 'AM' ? 'PM' : 'AM')}
+                    className={`text-xs px-2.5 py-1.5 rounded-lg font-extrabold transition-all shadow-sm ${
+                      startPeriod === 'AM'
+                        ? 'bg-amber-500 text-white hover:bg-amber-600'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {startPeriod}
+                  </button>
+                </div>
+              </div>
+
+              {/* End Time */}
+              <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-sm space-y-1">
+                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">End Time</span>
+                <div className="flex items-center gap-1">
+                  <select
+                    value={endHour}
+                    onChange={(e) => setEndHour(e.target.value)}
+                    className="text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-sky-500"
+                  >
+                    {['01','02','03','04','05','06','07','08','09','10','11','12'].map(h => (
+                      <option key={h} value={h}>{h}</option>
+                    ))}
+                  </select>
+                  <span className="font-bold text-slate-400">:</span>
+                  <select
+                    value={endMinute}
+                    onChange={(e) => setEndMinute(e.target.value)}
+                    className="text-xs p-1.5 bg-slate-50 border border-slate-200 rounded-lg font-bold text-slate-800 focus:outline-none focus:border-sky-500"
+                  >
+                    {['00','15','30','45'].map(m => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </select>
+                  <button
+                    type="button"
+                    onClick={() => setEndPeriod(endPeriod === 'AM' ? 'PM' : 'AM')}
+                    className={`text-xs px-2.5 py-1.5 rounded-lg font-extrabold transition-all shadow-sm ${
+                      endPeriod === 'AM'
+                        ? 'bg-amber-500 text-white hover:bg-amber-600'
+                        : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                    }`}
+                  >
+                    {endPeriod}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Active Schedule Range Summary Badge */}
+            <div className="bg-sky-50 border border-sky-200 rounded-xl p-2.5 flex items-center justify-between text-xs font-bold text-sky-900">
+              <span className="flex items-center gap-1.5">
+                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                Selected Slot:
+              </span>
+              <span className="bg-white px-2.5 py-1 rounded-lg border border-sky-200 font-mono text-sky-800 text-xs shadow-xs">
+                {startHour}:{startMinute} {startPeriod} to {endHour}:{endMinute} {endPeriod}
+              </span>
             </div>
           </div>
 
@@ -250,3 +389,4 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
     </div>
   );
 };
+

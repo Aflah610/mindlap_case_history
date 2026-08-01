@@ -4,7 +4,7 @@ import { DashboardStats, AuditLog } from '../types';
 import { api } from '../services/api';
 import {
   Users, UserCheck, Calendar, FileText, ShieldAlert,
-  Download, Eye, Activity, Database, CheckCircle, Clock
+  Eye, Activity, Database, CheckCircle, Clock
 } from 'lucide-react';
 import { UserRole } from '../types';
 
@@ -59,18 +59,6 @@ export const OwnerDashboard: React.FC = () => {
           <p className="text-xs text-slate-400 mt-1 max-w-xl">
             Complete, unrestricted visibility across all clinic operations, therapist workloads, confidential case reports, and security audit logs.
           </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <a
-            href="http://127.0.0.1:8000/api/clients/export_csv/"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
-          >
-            <Download className="w-4 h-4" />
-            Export Executive Data (CSV)
-          </a>
         </div>
       </div>
 

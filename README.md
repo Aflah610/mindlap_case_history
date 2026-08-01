@@ -9,17 +9,6 @@ A full-stack mental health therapy management web application built for Mindlap 
 
 ---
 
-## 🔑 Default User Login Credentials
-
-| Role | Username | Password | Email | Description |
-|---|---|---|---|---|
-| **Admin** | `admin` | `Admin@123` | `admin@mindlap.com` | Full system access, staff management, audit logs |
-| **CCD Staff** | `marcus.vance` | `Ccd@123` | `marcus.vance@mindlap.com` | Registration, appointments (Therapy notes redacted) |
-| **Psychologist** | `dr.jenkins` | `Psych@123` | `dr.jenkins@mindlap.com` | Assigned clients, multi-step case history wizard, PDF download |
-| **Psychologist** | `dr.morgan` | `Psych@123` | `dr.morgan@mindlap.com` | Assigned clients only (Data isolated) |
-
----
-
 ## 🚀 Quick Start Guide
 
 ### Option 1: Run via Docker Compose (Recommended)
@@ -43,9 +32,6 @@ pip install -r requirements.txt
 # Run migrations
 python manage.py makemigrations
 python manage.py migrate
-
-# Seed database with sample clinical data
-python seed_data.py
 
 # Start Django backend server
 python manage.py runserver 8000

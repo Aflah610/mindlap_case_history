@@ -80,10 +80,34 @@ export const SessionTimeline: React.FC<SessionTimelineProps> = ({
         </button>
       </div>
 
+      {/* Session Counter Tracker Banner */}
+      <div className="bg-purple-50 border border-purple-200 p-4 rounded-xl flex items-center justify-between text-xs">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-purple-600 text-white rounded-xl font-black text-sm">
+            #{sessionNotes.length + 1}
+          </div>
+          <div>
+            <div className="font-extrabold text-slate-800">
+              Total Sessions Already Written: <span className="text-purple-700 font-extrabold">{sessionNotes.length} Sessions</span>
+            </div>
+            <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
+              Next Session You Are Writing: <strong className="text-purple-900 font-black">Session #{sessionNotes.length + 1}</strong>
+            </div>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setShowAddModal(true)}
+          className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm"
+        >
+          <Plus className="w-4 h-4" /> Add Session Note #{sessionNotes.length + 1}
+        </button>
+      </div>
+
       {/* Timeline View */}
       {sessionNotes.length === 0 ? (
         <div className="py-8 text-center text-xs text-slate-400 italic">
-          No therapy session notes recorded yet. Click "Add Session Note" to begin clinical logs.
+          No therapy session notes recorded yet. Click "Add Session Note" to begin clinical logs for Session #1.
         </div>
       ) : (
         <div className="space-y-6">
@@ -170,10 +194,18 @@ export const SessionTimeline: React.FC<SessionTimelineProps> = ({
       {showAddModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
-            <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2 border-b border-slate-100 pb-3">
-              <Plus className="w-5 h-5 text-sky-600" />
-              Add Therapy Session Note #{sessionNotes.length + 1}
-            </h3>
+            <div className="border-b border-slate-100 pb-3">
+              <h3 className="text-base font-extrabold text-slate-800 flex items-center gap-2">
+                <Plus className="w-5 h-5 text-purple-600" />
+                Writing Therapy Session Note #{sessionNotes.length + 1}
+              </h3>
+              <div className="mt-2 p-2.5 bg-purple-50 border border-purple-200 rounded-xl flex items-center justify-between text-xs">
+                <span className="text-purple-900 font-bold">Sessions Already Written: <strong>{sessionNotes.length}</strong></span>
+                <span className="text-purple-700 font-extrabold bg-purple-200/70 px-2.5 py-0.5 rounded-full text-[11px]">
+                  Creating Session #{sessionNotes.length + 1}
+                </span>
+              </div>
+            </div>
 
             <form onSubmit={handleCreateSessionNote} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-3">

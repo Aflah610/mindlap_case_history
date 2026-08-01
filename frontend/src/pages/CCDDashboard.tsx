@@ -4,7 +4,7 @@ import { api } from '../services/api';
 import { AppointmentBookingModal } from '../components/AppointmentBookingModal';
 import {
   UserPlus, Calendar, ShieldAlert, CheckCircle2, Clock,
-  Search, FilePlus, Phone, Mail, UserCheck, AlertTriangle, Edit3, UserCheck2, RefreshCw
+  Search, FilePlus, Phone, Mail, UserCheck, AlertTriangle, Edit3, UserCheck2, RefreshCw, Trash2
 } from 'lucide-react';
 
 export const CCDDashboard: React.FC = () => {
@@ -142,6 +142,13 @@ export const CCDDashboard: React.FC = () => {
     }
   };
 
+  const toLocalISOString = (dateStr?: string) => {
+    if (!dateStr) return '';
+    const d = new Date(dateStr);
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
   const handleRescheduleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedApp) return;
@@ -150,7 +157,7 @@ export const CCDDashboard: React.FC = () => {
 
     try {
       const payload: any = {};
-      if (rescheduleDate) payload.appointment_date = rescheduleDate;
+      if (rescheduleDate) payload.appointment_date = new Date(rescheduleDate).toISOString();
       if (reassignPsychologistId) payload.psychologist = parseInt(reassignPsychologistId, 10);
 
       await api.patch(`appointments/${selectedApp.id}/`, payload);
@@ -171,7 +178,7 @@ export const CCDDashboard: React.FC = () => {
 
   const openRescheduleModal = (app: Appointment) => {
     setSelectedApp(app);
-    setRescheduleDate(app.appointment_date ? new Date(app.appointment_date).toISOString().slice(0, 16) : '');
+    setRescheduleDate(app.appointment_date ? toLocalISOString(app.appointment_date) : '');
     setReassignPsychologistId(app.psychologist ? app.psychologist.toString() : '');
     setRescheduleError(null);
   };

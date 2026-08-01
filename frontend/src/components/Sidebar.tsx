@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { MindlapLogo } from './MindlapLogo';
-import { LayoutDashboard, Users, FileText, Calendar, Folder, UserCheck, ShieldCheck, Download, CalendarCheck } from 'lucide-react';
+import { LayoutDashboard, Users, FileText, Calendar, UserCheck, ShieldCheck, CalendarCheck } from 'lucide-react';
 
 export const Sidebar: React.FC = () => {
   const { effectiveRole } = useAuth();
@@ -13,10 +13,8 @@ export const Sidebar: React.FC = () => {
     { label: 'Centralized Schedule', path: '/centralized-schedule', icon: CalendarCheck, roles: ['owner', 'admin', 'operation_manager'] },
     { label: 'Case Histories', path: '/case-histories', icon: FileText, roles: ['owner', 'admin', 'operation_manager', 'psychologist'] },
     { label: 'Appointments', path: '/appointments', icon: Calendar, roles: ['owner', 'admin', 'operation_manager', 'ccd'] },
-    { label: 'Documents & Consent', path: '/documents', icon: Folder, roles: ['owner', 'admin', 'operation_manager'] },
     { label: 'Staff Management', path: '/staff', icon: UserCheck, roles: ['owner', 'admin'] },
     { label: 'Security Audit Log', path: '/audit-logs', icon: ShieldCheck, roles: ['owner', 'admin', 'operation_manager'] },
-    { label: 'Export Data', path: '/export', icon: Download, roles: ['owner', 'admin', 'operation_manager'] },
   ];
 
   return (

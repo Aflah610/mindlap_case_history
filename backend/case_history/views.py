@@ -46,12 +46,22 @@ class PDFDownloadView(APIView):
     permission_classes = [permissions.IsAuthenticated, DenyCCDConfidential]
 
     def get(self, request, pk):
-        client = get_object_or_404(Client, pk=pk)
+        user = request.user
+        if user.role == 'ccd':
+            return Response({'detail': 'CCD Staff are restricted from accessing client clinical case histories or PDF reports.'}, status=status.HTTP_403_FORBIDDEN)
         
-        # Check permissions: Psychologist can only download for assigned clients
-        if request.user.role == 'psychologist':
-            if not client.assigned_psychologist or client.assigned_psychologist.user != request.user:
-                return Response({'detail': 'Permission denied. You can only access assigned client PDFs.'}, status=status.HTTP_403_FORBIDDEN)
+        client = get_object_or_404(Client, pk=pk)
+
+        # Check permission: Owner, Admin, Operation Manager, Superuser, OR Assigned Psychologist
+        is_management = user.role in ['owner', 'admin', 'operation_manager'] or user.is_superuser
+        is_assigned_psychologist = (
+            user.role == 'psychologist' and 
+            client.assigned_psychologist and 
+            client.assigned_psychologist.user == user
+        )
+
+        if not (is_management or is_assigned_psychologist):
+            return Response({'detail': 'Permission denied. Clinical PDF reports can only be downloaded by management or the assigned psychologist.'}, status=status.HTTP_403_FORBIDDEN)
         
         try:
             case_history = client.case_history

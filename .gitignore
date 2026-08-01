@@ -1,20 +1,32 @@
-# Dependencies
+# Dependencies & Virtual Envs
 node_modules/
 backend/venv/
 venv/
 __pycache__/
 *.pyc
 
-# Build outputs
+# Build Outputs & Collected Static Files
 frontend/dist/
 dist/
 build/
+backend/staticfiles/
 
-# Environment and Local DB
+# Environment Variables & Secrets
 .env
-*.sqlite3
+.env.*
+*.env
+backend/.env
+*.pem
+*.key
+*.p12
+*.crt
 
-# IDE & OS files
+# Local Databases & Media Uploads
+*.sqlite3
+backend/db.sqlite3
+backend/media/
+
+# IDE & OS System Files
 .vscode/
 .idea/
 .DS_Store

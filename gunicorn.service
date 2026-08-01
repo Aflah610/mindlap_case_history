@@ -1,0 +1,21 @@
+[Unit]
+Description=Gunicorn daemon for Mindlap EMR Backend
+After=network.target postgresql.service
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/var/www/mindlap/backend
+EnvironmentFile=/var/www/mindlap/backend/.env
+ExecStart=/var/www/mindlap/backend/venv/bin/gunicorn \
+          --access-logfile /var/log/gunicorn/access.log \
+          --error-logfile /var/log/gunicorn/error.log \
+          --workers 3 \
+          --bind 127.0.0.1:8000 \
+          mindlap_backend.wsgi:application
+
+Restart=always
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

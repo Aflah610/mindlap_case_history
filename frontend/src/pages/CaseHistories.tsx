@@ -1,18 +1,20 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
-import { Client, CaseHistory, SessionNote } from '../types';
-import { ShieldAlert, FileText, PlusCircle, Edit, Download } from 'lucide-react';
+import { Client, CaseHistory, SessionNote, Psychologist } from '../types';
+import { ShieldAlert, FileText, PlusCircle, Edit, Download, Eye, Filter } from 'lucide-react';
 import { CaseHistoryWizard } from '../components/CaseHistoryWizard';
-import { SessionTimeline } from '../components/SessionTimeline';
+import { PDFModal } from '../components/PDFModal';
 
 export const CaseHistories: React.FC = () => {
   const { effectiveRole } = useAuth();
   const [clients, setClients] = useState<Client[]>([]);
+  const [psychologists, setPsychologists] = useState<Psychologist[]>([]);
   const [caseHistories, setCaseHistories] = useState<Record<number, CaseHistory>>({});
   const [sessionNotesMap, setSessionNotesMap] = useState<Record<number, SessionNote[]>>({});
   const [selectedClientForWizard, setSelectedClientForWizard] = useState<Client | null>(null);
-  const [selectedClientForTimeline, setSelectedClientForTimeline] = useState<Client | null>(null);
+  const [selectedClientForReport, setSelectedClientForReport] = useState<Client | null>(null);
+  const [selectedPsychologistFilter, setSelectedPsychologistFilter] = useState<string>('all');
 
   useEffect(() => {
     fetchData();
@@ -20,9 +22,12 @@ export const CaseHistories: React.FC = () => {
 
   const fetchData = async () => {
     try {
-      const cRes = await api.get('clients/');
-      const clientsList = cRes.data.results || cRes.data || [];
-      setClients(clientsList);
+      const [cRes, pRes] = await Promise.all([
+        api.get('clients/'),
+        api.get('auth/psychologists/')
+      ]);
+      setClients(cRes.data.results || cRes.data || []);
+      setPsychologists(pRes.data.results || pRes.data || []);
       
       if (effectiveRole !== 'ccd') {
         const [chRes, snRes] = await Promise.all([
@@ -48,6 +53,33 @@ export const CaseHistories: React.FC = () => {
     }
   };
 
+  const activePsychologists = psychologists.filter(p => p.user?.status !== 'inactive' && p.user?.is_active !== false);
+  const formerPsychologists = psychologists.filter(p => p.user?.status === 'inactive' || p.user?.is_active === false);
+
+  const handleDownloadPDFDirect = async (client: Client) => {
+    try {
+      const response = await api.get(`case-history/${client.id}/pdf/`, {
+        responseType: 'blob',
+      });
+      const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `Case_History_${client.client_code}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      alert('Failed to download PDF report.');
+    }
+  };
+
+  const filteredClients = clients.filter(c => {
+    if (selectedPsychologistFilter === 'all') return true;
+    if (selectedPsychologistFilter === 'unassigned') return !c.assigned_psychologist;
+    return String(c.assigned_psychologist) === selectedPsychologistFilter;
+  });
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -57,6 +89,41 @@ export const CaseHistories: React.FC = () => {
             Clinical assessments, Mental Status Examinations (MSE), diagnoses, treatment plans, and session timelines
           </p>
         </div>
+
+        {/* Psychologist Filter Dropdown */}
+        {(effectiveRole === 'owner' || effectiveRole === 'admin' || effectiveRole === 'operation_manager') && !selectedClientForWizard && (
+          <div className="flex items-center gap-2">
+            <Filter className="w-4 h-4 text-slate-400" />
+            <select
+              value={selectedPsychologistFilter}
+              onChange={(e) => setSelectedPsychologistFilter(e.target.value)}
+              className="px-3 py-1.5 text-xs bg-white border border-slate-200 rounded-xl focus:outline-none focus:border-sky-500 font-bold text-slate-800 shadow-2xs"
+            >
+              <option value="all">Filter by Psychologist (All)</option>
+              <option value="unassigned">Unassigned Clients</option>
+              
+              {activePsychologists.length > 0 && (
+                <optgroup label="🟢 Works Now (Active Psychologists)">
+                  {activePsychologists.map(p => (
+                    <option key={p.id} value={p.id}>
+                      Dr. {p.user?.name} ({p.specialization})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+
+              {formerPsychologists.length > 0 && (
+                <optgroup label="🔴 Worked Previously (Former Psychologists)" className="text-rose-600 font-bold">
+                  {formerPsychologists.map(p => (
+                    <option key={p.id} value={p.id} className="text-rose-600 font-bold">
+                      🔴 Dr. {p.user?.name} (Former - Worked Previously)
+                    </option>
+                  ))}
+                </optgroup>
+              )}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* CCD Confidentiality Banner */}
@@ -81,24 +148,12 @@ export const CaseHistories: React.FC = () => {
           <CaseHistoryWizard
             client={selectedClientForWizard}
             existingCaseHistory={caseHistories[selectedClientForWizard.id]}
+            sessionNotes={sessionNotesMap[selectedClientForWizard.id] || []}
             onSaveSuccess={() => {
               fetchData();
               setSelectedClientForWizard(null);
             }}
-          />
-        </div>
-      ) : selectedClientForTimeline ? (
-        <div>
-          <button
-            onClick={() => setSelectedClientForTimeline(null)}
-            className="mb-4 text-xs font-bold text-slate-600 hover:text-slate-800"
-          >
-            ← Back to Client List
-          </button>
-          <SessionTimeline
-            client={selectedClientForTimeline}
-            sessionNotes={sessionNotesMap[selectedClientForTimeline.id] || []}
-            onRefresh={fetchData}
+            onRefreshSessionNotes={fetchData}
           />
         </div>
       ) : (
@@ -114,9 +169,14 @@ export const CaseHistories: React.FC = () => {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200 text-xs">
-              {clients.map((client) => {
+              {filteredClients.map((client) => {
                 const ch = caseHistories[client.id];
                 const riskLevel = ch?.risk_assessment?.suicideRisk || 'Low';
+                const totalSessions = sessionNotesMap[client.id]?.length || 0;
+                
+                const psyUser = client.assigned_psychologist_detail?.user;
+                const isFormerPsychologist = psyUser?.status === 'inactive' || psyUser?.is_active === false;
+
                 return (
                   <tr key={client.id} className="hover:bg-slate-50">
                     <td className="px-6 py-4">
@@ -143,45 +203,72 @@ export const CaseHistories: React.FC = () => {
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4 text-slate-700">
-                      {client.assigned_psychologist_detail?.user?.name ? `Dr. ${client.assigned_psychologist_detail.user.name}` : 'Unassigned'}
+                    <td className="px-6 py-4 text-slate-700 font-semibold">
+                      {psyUser?.name ? (
+                        isFormerPsychologist ? (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200">
+                            🔴 Dr. {psyUser.name} (Former - Worked Previously)
+                          </span>
+                        ) : (
+                          <span className="text-sky-700 font-bold">
+                            Dr. {psyUser.name}
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-slate-400 italic">Unassigned</span>
+                      )}
                     </td>
                     <td className="px-6 py-4">
                       {effectiveRole === 'ccd' ? (
                         <span className="text-xs text-slate-400 font-semibold">Restricted</span>
                       ) : (
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                           <button
                             onClick={() => setSelectedClientForWizard(client)}
-                            className="flex items-center gap-1 px-3 py-1 text-[11px] font-bold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 rounded-md"
+                            className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-extrabold text-sky-700 bg-sky-50 border border-sky-200 hover:bg-sky-100 rounded-lg shadow-2xs transition-all"
                           >
-                            <Edit className="w-3.5 h-3.5" /> Wizard Assessment
+                            <Edit className="w-3.5 h-3.5" /> Case History & Notes ({totalSessions})
                           </button>
 
                           <button
-                            onClick={() => setSelectedClientForTimeline(client)}
-                            className="flex items-center gap-1 px-3 py-1 text-[11px] font-bold text-teal-700 bg-teal-50 border border-teal-200 hover:bg-teal-100 rounded-md"
+                            onClick={() => setSelectedClientForReport(client)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-purple-700 bg-purple-50 border border-purple-200 hover:bg-purple-100 rounded-lg transition-all"
+                            title="View Mindlap Clinical Report"
                           >
-                            <FileText className="w-3.5 h-3.5" /> Sessions ({sessionNotesMap[client.id]?.length || 0})
+                            <Eye className="w-3.5 h-3.5" /> View Report
                           </button>
 
-                          <a
-                            href={`http://127.0.0.1:8000/api/pdf/${client.id}/`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="flex items-center gap-1 px-3 py-1 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-md"
+                          <button
+                            onClick={() => handleDownloadPDFDirect(client)}
+                            className="flex items-center gap-1 px-2.5 py-1.5 text-[11px] font-bold text-slate-700 bg-slate-100 border border-slate-200 hover:bg-slate-200 rounded-lg transition-all"
+                            title="Download Mindlap PDF Report"
                           >
                             <Download className="w-3.5 h-3.5" /> PDF
-                          </a>
+                          </button>
                         </div>
                       )}
                     </td>
                   </tr>
                 );
               })}
+              {filteredClients.length === 0 && (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-400 italic">
+                    No case histories found matching current filters.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Report Modal */}
+      {selectedClientForReport && (
+        <PDFModal
+          client={selectedClientForReport}
+          onClose={() => setSelectedClientForReport(null)}
+        />
       )}
     </div>
   );

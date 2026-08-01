@@ -8,6 +8,7 @@ export interface User {
   phone?: string;
   role: UserRole;
   status: 'active' | 'inactive';
+  is_active?: boolean;
   is_superuser?: boolean;
   created_at: string;
 }
@@ -140,18 +141,6 @@ export interface Appointment {
   status: 'Scheduled' | 'Completed' | 'Cancelled' | 'Rescheduled';
   remarks?: string;
   created_at: string;
-}
-
-export interface DocumentRecord {
-  id: number;
-  client: number;
-  client_detail?: Client;
-  file_name: string;
-  file_type: string;
-  file: string;
-  uploaded_by?: number;
-  uploaded_by_detail?: User;
-  uploaded_at: string;
 }
 
 export interface AuditLog {

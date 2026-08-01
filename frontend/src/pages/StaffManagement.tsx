@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserCheck, UserPlus, Key, Copy, Check, Trash2, Edit3, Mail, Phone, Shield, AlertCircle, Filter } from 'lucide-react';
+import { UserCheck, UserPlus, Key, Copy, Check, Trash2, Edit3, Mail, Phone, Shield, AlertCircle, Filter, Eye, EyeOff } from 'lucide-react';
 import { api } from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -31,6 +31,10 @@ export const StaffManagement: React.FC = () => {
   const [role, setRole] = useState<'ccd' | 'psychologist' | 'operation_manager'>('ccd');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Password visibility state
+  const [showEditPassword, setShowEditPassword] = useState(false);
+  const [showCreatePassword, setShowCreatePassword] = useState(false);
 
   // Edit Staff Form State
   const [editName, setEditName] = useState('');
@@ -139,6 +143,57 @@ export const StaffManagement: React.FC = () => {
       setEditErrorMsg(err.response?.data?.detail || 'Failed to update user account details.');
     } finally {
       setEditSubmitting(false);
+    }
+  };
+
+  // Offboarding / Reassignment Modal State
+  const [offboardingUser, setOffboardingUser] = useState<UserAccount | null>(null);
+  const [psychologists, setPsychologists] = useState<any[]>([]);
+  const [allClients, setAllClients] = useState<any[]>([]);
+  const [replacementPsychologistId, setReplacementPsychologistId] = useState<string>('');
+  const [offboardingSubmitting, setOffboardingSubmitting] = useState(false);
+  const [offboardSuccessMsg, setOffboardSuccessMsg] = useState<string | null>(null);
+
+  const fetchOffboardData = async () => {
+    try {
+      const [psyRes, cliRes] = await Promise.all([
+        api.get('auth/psychologists/'),
+        api.get('clients/')
+      ]);
+      setPsychologists(psyRes.data.results || psyRes.data || []);
+      setAllClients(cliRes.data.results || cliRes.data || []);
+    } catch (err) {
+      console.error('Failed to fetch psychologists or clients for offboarding:', err);
+    }
+  };
+
+  const handleOpenOffboardModal = async (u: UserAccount) => {
+    setOffboardingUser(u);
+    setReplacementPsychologistId('');
+    setOffboardSuccessMsg(null);
+    await fetchOffboardData();
+  };
+
+  const handleConfirmOffboard = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!offboardingUser) return;
+    setOffboardingSubmitting(true);
+
+    try {
+      const res = await api.post(`auth/users/${offboardingUser.id}/offboard/`, {
+        replacement_psychologist_id: replacementPsychologistId ? parseInt(replacementPsychologistId, 10) : null
+      });
+
+      setOffboardSuccessMsg(res.data.detail || 'Account deactivated and clients reassigned successfully.');
+      setTimeout(() => {
+        setOffboardingUser(null);
+        setOffboardSuccessMsg(null);
+        fetchUsers();
+      }, 1800);
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to complete psychologist offboarding.');
+    } finally {
+      setOffboardingSubmitting(false);
     }
   };
 
@@ -321,9 +376,15 @@ export const StaffManagement: React.FC = () => {
                   <div className="text-[11px] text-slate-400">{u.phone || ''}</div>
                 </td>
                 <td className="px-6 py-4">
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
-                    {u.status || 'Active'}
-                  </span>
+                  {u.status === 'inactive' || (u as any).is_active === false ? (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 border border-rose-200 shadow-2xs">
+                      🔴 Worked Previously (Former Staff)
+                    </span>
+                  ) : (
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      🟢 Works Now (Active)
+                    </span>
+                  )}
                 </td>
                 <td className="px-6 py-4 text-right flex items-center justify-end gap-1">
                   <button
@@ -335,9 +396,9 @@ export const StaffManagement: React.FC = () => {
                   </button>
                   {u.username !== 'admin' && (
                     <button
-                      onClick={() => handleDeleteUser(u.id, u.username)}
+                      onClick={() => handleOpenOffboardModal(u)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
-                      title="Remove Staff Account"
+                      title="Deactivate & Reassign Staff Account"
                     >
                       <Trash2 className="w-4 h-4" />
                     </button>
@@ -429,13 +490,23 @@ export const StaffManagement: React.FC = () => {
 
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">New Password (Leave blank to keep existing)</label>
-                <input
-                  type="password"
-                  value={editPassword}
-                  onChange={(e) => setEditPassword(e.target.value)}
-                  placeholder="Enter new password if changing..."
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sky-500"
-                />
+                <div className="relative">
+                  <input
+                    type={showEditPassword ? 'text' : 'password'}
+                    value={editPassword}
+                    onChange={(e) => setEditPassword(e.target.value)}
+                    placeholder="Enter new password if changing..."
+                    className="w-full text-xs p-2.5 pr-10 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sky-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowEditPassword(!showEditPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-sky-600 focus:outline-none"
+                    title={showEditPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showEditPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
               </div>
 
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
@@ -552,19 +623,29 @@ export const StaffManagement: React.FC = () => {
                 <label className="block text-xs font-bold text-slate-700 mb-1">Initial Password</label>
                 <div className="relative">
                   <input
-                    type="text"
+                    type={showCreatePassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sky-500 font-bold text-slate-800"
+                    className="w-full text-xs p-2.5 pr-32 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sky-500 font-bold text-slate-800"
                     required
                   />
-                  <button
-                    type="button"
-                    onClick={() => setPassword(`Ccd@${Math.floor(100 + Math.random() * 900)}`)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] font-bold bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded-md text-slate-700"
-                  >
-                    Generate Random
-                  </button>
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => setShowCreatePassword(!showCreatePassword)}
+                      className="p-1 text-slate-400 hover:text-sky-600 focus:outline-none"
+                      title={showCreatePassword ? 'Hide password' : 'Show password'}
+                    >
+                      {showCreatePassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setPassword(`Ccd@${Math.floor(100 + Math.random() * 900)}`)}
+                      className="text-[10px] font-bold bg-slate-200 hover:bg-slate-300 px-2 py-1 rounded-md text-slate-700"
+                    >
+                      Generate Random
+                    </button>
+                  </div>
                 </div>
               </div>
 
@@ -585,6 +666,86 @@ export const StaffManagement: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Offboarding & Client Reassignment Modal */}
+      {offboardingUser && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div className="flex items-center gap-2 text-rose-700">
+                <Shield className="w-5 h-5" />
+                <h3 className="text-base font-extrabold text-slate-800">
+                  Staff Offboarding & Data Safety
+                </h3>
+              </div>
+              <button
+                onClick={() => setOffboardingUser(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {offboardSuccessMsg ? (
+              <div className="p-4 bg-emerald-50 border border-emerald-200 rounded-xl text-emerald-800 text-xs font-bold flex items-center gap-2">
+                <Check className="w-5 h-5 text-emerald-600" />
+                <span>{offboardSuccessMsg}</span>
+              </div>
+            ) : (
+              <form onSubmit={handleConfirmOffboard} className="space-y-4">
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 text-xs space-y-1.5">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    Offboarding Staff Member: {offboardingUser.name} (@{offboardingUser.username})
+                  </div>
+                  <p className="text-[11px] text-amber-700 leading-relaxed">
+                    To maintain HIPAA/GDPR medical compliance and prevent orphan client records, active clients and scheduled consultations will be bulk-transferred to another psychologist. Historical case notes remain permanently preserved.
+                  </p>
+                </div>
+
+                {offboardingUser.role === 'psychologist' && (
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">
+                      Select Replacement Psychologist <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={replacementPsychologistId}
+                      onChange={(e) => setReplacementPsychologistId(e.target.value)}
+                      className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl font-bold text-sky-900 focus:outline-none focus:border-sky-500"
+                    >
+                      <option value="">-- Choose Replacement Psychologist --</option>
+                      {psychologists
+                        .filter((p: any) => p.user?.username !== offboardingUser.username)
+                        .map((p: any) => (
+                          <option key={p.id} value={p.id}>
+                            Dr. {p.user?.name} ({p.specialization})
+                          </option>
+                        ))}
+                    </select>
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => setOffboardingUser(null)}
+                    className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={offboardingSubmitting}
+                    className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded-xl shadow-sm transition-all"
+                  >
+                    {offboardingSubmitting ? 'Transferring Data & Offboarding...' : 'Confirm Offboarding & Reassign Clients'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

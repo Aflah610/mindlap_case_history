@@ -4,47 +4,61 @@ services:
   db:
     image: postgres:15-alpine
     container_name: mindlap_postgres
+    restart: always
     environment:
-      POSTGRES_DB: mindlap_db
-      POSTGRES_USER: mindlap_user
-      POSTGRES_PASSWORD: mindlap_secure_password_2026
+      POSTGRES_DB: ${DB_NAME:-mindlap_db}
+      POSTGRES_USER: ${DB_USER:-mindlap_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-mindlap_secure_password_2026}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-mindlap_user} -d ${DB_NAME:-mindlap_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
     container_name: mindlap_backend
+    restart: always
     command: >
       sh -c "python manage.py migrate &&
-             python seed_data.py &&
-             python manage.py runserver 0.0.0.0:8000"
+             python manage.py collectstatic --noinput &&
+             python init_production_db.py &&
+             gunicorn mindlap_backend.wsgi:application --bind 0.0.0.0:8000 --workers 3"
     volumes:
-      - ./backend:/app
+      - backend_media:/app/media
+      - backend_static:/app/staticfiles
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"
     environment:
+      - DEBUG=${DEBUG:-False}
+      - SECRET_KEY=${SECRET_KEY:-mindlap-prod-secret-key-change-in-env-2026!}
+      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
       - DB_ENGINE=django.db.backends.postgresql
-      - DB_NAME=mindlap_db
-      - DB_USER=mindlap_user
-      - DB_PASSWORD=mindlap_secure_password_2026
+      - DB_NAME=${DB_NAME:-mindlap_db}
+      - DB_USER=${DB_USER:-mindlap_user}
+      - DB_PASSWORD=${DB_PASSWORD:-mindlap_secure_password_2026}
       - DB_HOST=db
       - DB_PORT=5432
-      - SECRET_KEY=django-insecure-mindlap-secret-key-production-ready-2026-safe!
+      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS:-False}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:3000,http://127.0.0.1}
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   frontend:
     build: ./frontend
     container_name: mindlap_frontend
+    restart: always
     ports:
-      - "3000:3000"
-    volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - "80:80"
     depends_on:
       - backend
 
 volumes:
   postgres_data:
+  backend_media:
+  backend_static:

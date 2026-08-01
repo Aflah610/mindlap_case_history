@@ -63,7 +63,7 @@ export const TherapistDashboard: React.FC = () => {
           className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
         >
           <Plus className="w-4 h-4" />
-          New Case History Wizard
+          Clinical Case History
         </Link>
       </div>
 
@@ -97,7 +97,7 @@ export const TherapistDashboard: React.FC = () => {
             <FileText className="w-5 h-5 text-emerald-600" />
           </div>
           <div className="text-3xl font-extrabold text-slate-800">{assignedClients.length}</div>
-          <span className="text-[11px] text-emerald-600 font-semibold">1-Click PDF exports ready</span>
+          <span className="text-[11px] text-emerald-600 font-semibold">Protected patient records</span>
         </div>
       </div>
 
@@ -126,16 +126,12 @@ export const TherapistDashboard: React.FC = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <a
-                  href={`http://127.0.0.1:8000/api/pdf/${client.id}/`}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="p-2 text-slate-600 hover:text-sky-600 hover:bg-sky-100 rounded-lg transition-colors flex items-center gap-1 text-xs font-bold"
-                  title="Download Clinical Report PDF"
+                <Link
+                  to="/case-histories"
+                  className="px-3 py-1.5 bg-sky-100 hover:bg-sky-200 text-sky-800 font-bold rounded-lg text-xs transition-colors"
                 >
-                  <Download className="w-4 h-4" />
-                  PDF
-                </a>
+                  View Case History
+                </Link>
               </div>
             </div>
           ))}
