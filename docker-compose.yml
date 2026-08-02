@@ -5,6 +5,8 @@ services:
     image: postgres:15-alpine
     container_name: mindlap_postgres
     restart: always
+    env_file:
+      - ./backend/.env
     environment:
       POSTGRES_DB: ${DB_NAME:-mindlap_db}
       POSTGRES_USER: ${DB_USER:-mindlap_user}
@@ -23,6 +25,8 @@ services:
     build: ./backend
     container_name: mindlap_backend
     restart: always
+    env_file:
+      - ./backend/.env
     command: >
       sh -c "python manage.py migrate &&
              python manage.py collectstatic --noinput &&
@@ -35,9 +39,10 @@ services:
       - "127.0.0.1:8000:8000"
     environment:
       - DEBUG=${DEBUG:-False}
-      - SECRET_KEY=${SECRET_KEY:-mindlap-prod-secret-key-change-in-env-2026!}
+      - SECRET_KEY=${SECRET_KEY}
+      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
       - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
-      - DB_ENGINE=django.db.backends.postgresql
+      - DB_ENGINE=${DB_ENGINE:-django.db.backends.postgresql}
       - DB_NAME=${DB_NAME:-mindlap_db}
       - DB_USER=${DB_USER:-mindlap_user}
       - DB_PASSWORD=${DB_PASSWORD:-mindlap_secure_password_2026}
@@ -45,6 +50,7 @@ services:
       - DB_PORT=5432
       - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS:-False}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:3000,http://127.0.0.1}
+      - RESET_DEMO_DATA=${RESET_DEMO_DATA:-False}
     depends_on:
       db:
         condition: service_healthy
