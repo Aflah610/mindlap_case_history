@@ -49,7 +49,7 @@ services:
     container_name: mindlap_frontend
     restart: always
     ports:
-      - "80:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - backend
 
