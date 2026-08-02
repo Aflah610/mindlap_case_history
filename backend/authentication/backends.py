@@ -9,6 +9,11 @@ class EmailOrUsernameModelBackend(ModelBackend):
     Custom Authentication Backend allowing login via either Username or Email address
     with case-insensitive matching and whitespace stripping.
     """
+    def user_can_authenticate(self, user):
+        is_active = getattr(user, 'is_active', True)
+        status = getattr(user, 'status', 'active')
+        return bool(is_active) and status == 'active'
+
     def authenticate(self, request, username=None, password=None, **kwargs):
         if not username or not password:
             return None

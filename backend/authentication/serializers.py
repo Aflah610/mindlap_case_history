@@ -73,7 +73,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['name'] = user.name
+        token['name'] = user.name.strip() if user.name and user.name.strip() else user.username
         token['email'] = user.email
         token['role'] = user.role
         return token
@@ -84,7 +84,7 @@ class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
         data = super().validate(attrs)
         data['user'] = {
             'id': self.user.id,
-            'name': self.user.name,
+            'name': self.user.name.strip() if self.user.name and self.user.name.strip() else self.user.username,
             'email': self.user.email,
             'role': self.user.role,
             'status': self.user.status,

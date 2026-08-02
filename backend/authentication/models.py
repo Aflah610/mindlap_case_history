@@ -21,8 +21,18 @@ class User(AbstractUser):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    REQUIRED_FIELDS = ['email', 'name']
+
+    def save(self, *args, **kwargs):
+        if not self.name:
+            self.name = self.username
+        if self.is_superuser and self.role not in ['owner', 'admin']:
+            self.role = 'owner'
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"{self.name} ({self.role.upper()})"
+        display_name = self.name.strip() if self.name and self.name.strip() else self.username
+        return f"{display_name} ({self.role.upper()})"
 
 
 class Psychologist(models.Model):
