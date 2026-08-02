@@ -3,12 +3,11 @@ import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { Eye, EyeOff, Lock, Mail, ShieldAlert, Sparkles } from 'lucide-react';
-import { UserRole } from '../types';
 import { MindlapLogo } from '../components/MindlapLogo';
 
 export const Login: React.FC = () => {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('Admin@123');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const { login } = useAuth();
@@ -40,23 +39,6 @@ export const Login: React.FC = () => {
     }
   };
 
-  const handleQuickRoleSelect = (r: UserRole) => {
-    switch (r) {
-      case 'owner':
-      case 'admin':
-        setUsername('admin');
-        setPassword('Admin@123');
-        break;
-      case 'ccd':
-        setUsername('delna');
-        setPassword('Ccd@123');
-        break;
-      default:
-        setUsername('admin');
-        setPassword('Admin@123');
-    }
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
       <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-8 border border-purple-100">
@@ -81,8 +63,9 @@ export const Login: React.FC = () => {
                 type="text"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
+                placeholder="Enter username or email"
                 required
-                className="w-full pl-9 pr-4 py-2.5 text-xs bg-purple-50/30 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium"
+                className="w-full pl-9 pr-4 py-2.5 text-xs bg-purple-50/30 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium text-slate-900"
               />
             </div>
           </div>
@@ -95,8 +78,9 @@ export const Login: React.FC = () => {
                 type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter password"
                 required
-                className="w-full pl-9 pr-10 py-2.5 text-xs bg-purple-50/30 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium"
+                className="w-full pl-9 pr-10 py-2.5 text-xs bg-purple-50/30 border border-slate-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:bg-white outline-none font-medium text-slate-900"
               />
               <button
                 type="button"
@@ -121,25 +105,6 @@ export const Login: React.FC = () => {
             Sign In to Mindlap EMR
           </button>
         </form>
-
-        {/* Quick Role Login Presets */}
-        <div className="mt-8 pt-6 border-t border-slate-200 text-center">
-          <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-3">Quick Login Presets</span>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              onClick={() => handleQuickRoleSelect('owner')}
-              className="py-2 px-2 bg-slate-100 hover:bg-sky-50 hover:text-sky-700 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors"
-            >
-              👑 Owner / Admin
-            </button>
-            <button
-              onClick={() => handleQuickRoleSelect('ccd')}
-              className="py-2 px-2 bg-slate-100 hover:bg-amber-50 hover:text-amber-700 border border-slate-200 rounded-lg text-[11px] font-bold text-slate-700 transition-colors"
-            >
-              📞 CCD Staff (@delna)
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
