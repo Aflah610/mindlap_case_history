@@ -7,30 +7,42 @@ django.setup()
 from authentication.models import User
 
 def reset():
-    print("[+] Resetting Owner Credentials...")
-    
-    # 1. Update / Create nasheelkt210
-    u1, c1 = User.objects.get_or_create(
-        username='nasheelkt210',
+    print("[+] Resetting & Fixing All Superusers/Owner Accounts...")
+
+    # Fix all superusers to role='owner' and password='Nasheel@210'
+    superusers = User.objects.filter(is_superuser=True)
+    for u in superusers:
+        u.role = 'owner'
+        u.status = 'active'
+        u.is_active = True
+        u.is_staff = True
+        u.set_password('Nasheel@210')
+        u.save()
+        print(f"[+] Fixed Superuser '{u.username}' (email: {u.email}) -> Role: OWNER, Pass: Nasheel@210")
+
+    # Ensure nasheel210 exists as Owner
+    u_nasheel, _ = User.objects.get_or_create(
+        username='nasheel210',
         defaults={
-            'name': 'System Administrator (Owner)',
-            'email': 'nasheelkt210@mindlap.com',
+            'name': 'Nasheel (Owner)',
+            'email': 'aflahkt610@gmail.com',
             'role': 'owner',
             'status': 'active',
             'is_staff': True,
             'is_superuser': True
         }
     )
-    u1.set_password('Nasheel@210')
-    u1.role = 'owner'
-    u1.status = 'active'
-    u1.is_staff = True
-    u1.is_superuser = True
-    u1.save()
-    print(f"[+] Updated user 'nasheelkt210' with password 'Nasheel@210'")
+    u_nasheel.role = 'owner'
+    u_nasheel.status = 'active'
+    u_nasheel.is_active = True
+    u_nasheel.is_staff = True
+    u_nasheel.is_superuser = True
+    u_nasheel.set_password('Nasheel@210')
+    u_nasheel.save()
+    print(f"[+] Configured Owner 'nasheel210' (Pass: Nasheel@210)")
 
-    # 2. Update / Create admin
-    u2, c2 = User.objects.get_or_create(
+    # Ensure admin exists as Owner
+    u_admin, _ = User.objects.get_or_create(
         username='admin',
         defaults={
             'name': 'System Administrator (Owner)',
@@ -41,13 +53,14 @@ def reset():
             'is_superuser': True
         }
     )
-    u2.set_password('Nasheel@210')
-    u2.role = 'owner'
-    u2.status = 'active'
-    u2.is_staff = True
-    u2.is_superuser = True
-    u2.save()
-    print(f"[+] Updated user 'admin' with password 'Nasheel@210'")
+    u_admin.role = 'owner'
+    u_admin.status = 'active'
+    u_admin.is_active = True
+    u_admin.is_staff = True
+    u_admin.is_superuser = True
+    u_admin.set_password('Nasheel@210')
+    u_admin.save()
+    print(f"[+] Configured Owner 'admin' (Pass: Nasheel@210)")
 
 if __name__ == '__main__':
     reset()
