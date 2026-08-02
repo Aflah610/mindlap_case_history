@@ -38,19 +38,8 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      - DEBUG=${DEBUG:-False}
-      - SECRET_KEY=${SECRET_KEY}
-      - ADMIN_PASSWORD=${ADMIN_PASSWORD}
-      - ALLOWED_HOSTS=${ALLOWED_HOSTS:-localhost,127.0.0.1,backend}
-      - DB_ENGINE=${DB_ENGINE:-django.db.backends.postgresql}
-      - DB_NAME=${DB_NAME:-mindlap_db}
-      - DB_USER=${DB_USER:-mindlap_user}
-      - DB_PASSWORD=${DB_PASSWORD:-mindlap_secure_password_2026}
       - DB_HOST=db
       - DB_PORT=5432
-      - CORS_ALLOW_ALL_ORIGINS=${CORS_ALLOW_ALL_ORIGINS:-False}
-      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost,http://localhost:3000,http://127.0.0.1}
-      - RESET_DEMO_DATA=${RESET_DEMO_DATA:-False}
     depends_on:
       db:
         condition: service_healthy
