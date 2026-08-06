@@ -93,6 +93,7 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
 
     const payload = {
       client: client.id,
+      psychologist: client.assigned_psychologist || existingCaseHistory?.psychologist || null,
       presenting_problems: presentingProblems,
       history_of_present_illness: historyOfPresentIllness,
       medical_history: medicalHistory,
@@ -121,8 +122,12 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
       }
       setSaveMessage('Case History saved successfully!');
       onSaveSuccess();
-    } catch (err) {
-      alert('Failed to save Case History. Please check inputs.');
+    } catch (err: any) {
+      console.error('Save case history error:', err);
+      const serverErr = err.response?.data
+        ? (typeof err.response.data === 'object' ? JSON.stringify(err.response.data) : err.response.data)
+        : (err.message || 'Please check inputs.');
+      alert(`Failed to save Case History: ${serverErr}`);
     } finally {
       setSubmitting(false);
     }

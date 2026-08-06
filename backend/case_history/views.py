@@ -24,6 +24,35 @@ class CaseHistoryViewSet(viewsets.ModelViewSet):
         # Psychologists view ONLY their assigned clients' case histories
         return CaseHistory.objects.filter(client__assigned_psychologist__user=user).order_by('-updated_at')
 
+    def create(self, request, *args, **kwargs):
+        client_id = request.data.get('client')
+        if client_id:
+            existing = CaseHistory.objects.filter(client_id=client_id).first()
+            if existing:
+                serializer = self.get_serializer(existing, data=request.data, partial=True)
+                serializer.is_valid(raise_exception=True)
+                self.perform_update(serializer)
+                return Response(serializer.data, status=status.HTTP_200_OK)
+        return super().create(request, *args, **kwargs)
+
+    def perform_create(self, serializer):
+        client = serializer.validated_data.get('client')
+        psychologist = serializer.validated_data.get('psychologist')
+        if not psychologist and client and client.assigned_psychologist:
+            psychologist = client.assigned_psychologist
+        if not psychologist and hasattr(self.request.user, 'psychologist_profile'):
+            psychologist = self.request.user.psychologist_profile
+        serializer.save(psychologist=psychologist)
+
+    def perform_update(self, serializer):
+        client = serializer.validated_data.get('client', serializer.instance.client if serializer.instance else None)
+        psychologist = serializer.validated_data.get('psychologist', serializer.instance.psychologist if serializer.instance else None)
+        if not psychologist and client and client.assigned_psychologist:
+            psychologist = client.assigned_psychologist
+        if not psychologist and hasattr(self.request.user, 'psychologist_profile'):
+            psychologist = self.request.user.psychologist_profile
+        serializer.save(psychologist=psychologist)
+
 
 class SessionNoteViewSet(viewsets.ModelViewSet):
     serializer_class = SessionNoteSerializer
@@ -40,6 +69,15 @@ class SessionNoteViewSet(viewsets.ModelViewSet):
         
         # Psychologists view ONLY their assigned clients' session notes
         return SessionNote.objects.filter(client__assigned_psychologist__user=user).order_by('-session_date')
+
+    def perform_create(self, serializer):
+        client = serializer.validated_data.get('client')
+        psychologist = serializer.validated_data.get('psychologist')
+        if not psychologist and client and client.assigned_psychologist:
+            psychologist = client.assigned_psychologist
+        if not psychologist and hasattr(self.request.user, 'psychologist_profile'):
+            psychologist = self.request.user.psychologist_profile
+        serializer.save(psychologist=psychologist)
 
 
 class PDFDownloadView(APIView):

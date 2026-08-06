@@ -33,7 +33,7 @@ export const SessionTimeline: React.FC<SessionTimelineProps> = ({
     try {
       await api.post('session-notes/', {
         client: client.id,
-        psychologist: client.assigned_psychologist || 1,
+        psychologist: client.assigned_psychologist || null,
         session_number: sessionNotes.length + 1,
         session_date: sessionDate,
         duration: duration,
@@ -54,8 +54,12 @@ export const SessionTimeline: React.FC<SessionTimelineProps> = ({
       setTreatmentRecommendation('');
       setFollowUpDate('');
       onRefresh();
-    } catch (err) {
-      alert('Failed to save session note.');
+    } catch (err: any) {
+      console.error('Save session note error:', err);
+      const serverErr = err.response?.data
+        ? (typeof err.response.data === 'object' ? JSON.stringify(err.response.data) : err.response.data)
+        : (err.message || 'Please check inputs.');
+      alert(`Failed to save session note: ${serverErr}`);
     } finally {
       setSubmitting(false);
     }
