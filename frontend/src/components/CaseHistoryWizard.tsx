@@ -26,6 +26,8 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
   const [activeStep, setActiveStep] = useState<number>(1);
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Form State
   const [presentingProblems, setPresentingProblems] = useState(existingCaseHistory?.presenting_problems || '');
@@ -90,6 +92,8 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
   const handleSave = async () => {
     setSubmitting(true);
     setSaveMessage(null);
+    setErrorMessage(null);
+    setFieldErrors({});
 
     const payload = {
       client: client.id,
@@ -124,13 +128,41 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
       onSaveSuccess();
     } catch (err: any) {
       console.error('Save case history error:', err);
-      const serverErr = err.response?.data
-        ? (typeof err.response.data === 'object' ? JSON.stringify(err.response.data) : err.response.data)
-        : (err.message || 'Please check inputs.');
-      alert(`Failed to save Case History: ${serverErr}`);
+      const data = err.response?.data;
+      const errorsMap: Record<string, string> = {};
+
+      if (data && typeof data === 'object') {
+        Object.keys(data).forEach((key) => {
+          const val = data[key];
+          errorsMap[key] = Array.isArray(val) ? val.join(' ') : String(val);
+        });
+        setFieldErrors(errorsMap);
+
+        if (errorsMap.presenting_problems || errorsMap.history_of_present_illness) setActiveStep(2);
+        else if (errorsMap.medical_history || errorsMap.psychiatric_history || errorsMap.family_history || errorsMap.substance_use) setActiveStep(3);
+        else if (errorsMap.personal_history || errorsMap.educational_history || errorsMap.occupational_history || errorsMap.relationship_history || errorsMap.social_history) setActiveStep(4);
+        else if (errorsMap.mental_status_examination || errorsMap.clinical_observation) setActiveStep(5);
+        else if (errorsMap.diagnosis || errorsMap.treatment_goals || errorsMap.treatment_plan || errorsMap.risk_assessment || errorsMap.therapist_notes) setActiveStep(6);
+        else if (errorsMap.client || errorsMap.psychologist) setActiveStep(1);
+
+        const fieldsList = Object.keys(errorsMap).map(k => k.replace(/_/g, ' ')).join(', ');
+        setErrorMessage(`Validation error on field(s): ${fieldsList}. Please check highlighted fields below.`);
+      } else {
+        setErrorMessage(err.message || 'Failed to save Case History. Please check server configuration.');
+      }
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const renderFieldError = (fieldName: string) => {
+    if (!fieldErrors[fieldName]) return null;
+    return (
+      <span className="text-[11px] font-bold text-rose-600 flex items-center gap-1 mt-1">
+        <AlertCircle className="w-3.5 h-3.5 shrink-0" />
+        {fieldErrors[fieldName]}
+      </span>
+    );
   };
 
   return (
@@ -204,75 +236,96 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
       ) : (
         <div className="space-y-6">
           {saveMessage && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-          {saveMessage}
-        </div>
-      )}
-
-      {/* Progress Bar & Stepper */}
-      <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
-        {steps.map((s) => (
-          <button
-            key={s.number}
-            onClick={() => setActiveStep(s.number)}
-            className={`flex-1 min-w-[120px] p-2.5 rounded-xl border text-left transition-all ${
-              activeStep === s.number
-                ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
-                : activeStep > s.number
-                ? 'bg-sky-50 text-sky-800 border-sky-200 font-semibold'
-                : 'bg-slate-50 text-slate-500 border-slate-200'
-            }`}
-          >
-            <div className="text-[10px] font-bold uppercase opacity-80">Step {s.number}</div>
-            <div className="text-xs font-bold truncate">{s.title}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Step Contents */}
-      <div className="space-y-4 pt-2">
-        {/* Step 1: Basic Demographics */}
-        {activeStep === 1 && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 1: Patient Demographics & Intake Information</h3>
-            <div className="grid grid-cols-2 gap-4 text-xs">
-              <div><span className="font-bold text-slate-600">Full Name:</span> {client.full_name}</div>
-              <div><span className="font-bold text-slate-600">Client Code:</span> {client.client_code}</div>
-              <div><span className="font-bold text-slate-600">Gender / Age:</span> {client.gender}, {client.age} yrs</div>
-              <div><span className="font-bold text-slate-600">Occupation:</span> {client.occupation || 'N/A'}</div>
-              <div><span className="font-bold text-slate-600">Phone:</span> {client.phone}</div>
-              <div><span className="font-bold text-slate-600">Emergency Contact:</span> {client.emergency_contact || 'N/A'}</div>
+            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-semibold rounded-xl flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+              {saveMessage}
             </div>
+          )}
+
+          {errorMessage && (
+            <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-semibold rounded-xl flex items-start justify-between gap-3 shadow-xs">
+              <div className="flex items-start gap-2">
+                <AlertCircle className="w-5 h-5 text-rose-600 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-extrabold text-rose-900">Unable to Save Case History</div>
+                  <div className="mt-0.5 text-rose-700">{errorMessage}</div>
+                </div>
+              </div>
+              <button onClick={() => setErrorMessage(null)} className="text-rose-500 hover:text-rose-700 font-bold text-xs">✕</button>
+            </div>
+          )}
+
+          {/* Progress Bar & Stepper */}
+          <div className="flex items-center justify-between gap-2 overflow-x-auto pb-2">
+            {steps.map((s) => (
+              <button
+                key={s.number}
+                onClick={() => setActiveStep(s.number)}
+                className={`flex-1 min-w-[120px] p-2.5 rounded-xl border text-left transition-all ${
+                  activeStep === s.number
+                    ? 'bg-sky-600 text-white border-sky-600 shadow-sm'
+                    : activeStep > s.number
+                    ? 'bg-sky-50 text-sky-800 border-sky-200 font-semibold'
+                    : 'bg-slate-50 text-slate-500 border-slate-200'
+                }`}
+              >
+                <div className="text-[10px] font-bold uppercase opacity-80">Step {s.number}</div>
+                <div className="text-xs font-bold truncate">{s.title}</div>
+              </button>
+            ))}
           </div>
-        )}
 
-        {/* Step 2: Presenting Complaints & HPI */}
-        {activeStep === 2 && (
-          <div className="space-y-4">
-            <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 2: Presenting Complaints & History of Present Illness (HPI)</h3>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Presenting Complaints</label>
-              <textarea
-                rows={3}
-                value={presentingProblems}
-                onChange={(e) => setPresentingProblems(e.target.value)}
-                placeholder="Chief complaints reported by client in verbatim..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">History of Present Illness (HPI)</label>
-              <textarea
-                rows={4}
-                value={historyOfPresentIllness}
-                onChange={(e) => setHistoryOfPresentIllness(e.target.value)}
-                placeholder="Detailed timeline of onset, course, triggers, and intensity of symptoms..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
-              />
-            </div>
-          </div>
-        )}
+          {/* Step Contents */}
+          <div className="space-y-4 pt-2">
+            {/* Step 1: Basic Demographics */}
+            {activeStep === 1 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 1: Patient Demographics & Intake Information</h3>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div><span className="font-bold text-slate-600">Full Name:</span> {client.full_name}</div>
+                  <div><span className="font-bold text-slate-600">Client Code:</span> {client.client_code}</div>
+                  <div><span className="font-bold text-slate-600">Gender / Age:</span> {client.gender}, {client.age} yrs</div>
+                  <div><span className="font-bold text-slate-600">Occupation:</span> {client.occupation || 'N/A'}</div>
+                  <div><span className="font-bold text-slate-600">Phone:</span> {client.phone}</div>
+                  <div><span className="font-bold text-slate-600">Emergency Contact:</span> {client.emergency_contact || 'N/A'}</div>
+                </div>
+                {renderFieldError('client')}
+                {renderFieldError('psychologist')}
+              </div>
+            )}
+
+            {/* Step 2: Presenting Complaints & HPI */}
+            {activeStep === 2 && (
+              <div className="space-y-4">
+                <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 2: Presenting Complaints & History of Present Illness (HPI)</h3>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Presenting Complaints</label>
+                  <textarea
+                    rows={3}
+                    value={presentingProblems}
+                    onChange={(e) => setPresentingProblems(e.target.value)}
+                    placeholder="Chief complaints reported by client in verbatim..."
+                    className={`w-full text-xs p-3 rounded-xl transition-all ${
+                      fieldErrors.presenting_problems ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                    }`}
+                  />
+                  {renderFieldError('presenting_problems')}
+                </div>
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">History of Present Illness (HPI)</label>
+                  <textarea
+                    rows={4}
+                    value={historyOfPresentIllness}
+                    onChange={(e) => setHistoryOfPresentIllness(e.target.value)}
+                    placeholder="Detailed timeline of onset, course, triggers, and intensity of symptoms..."
+                    className={`w-full text-xs p-3 rounded-xl transition-all ${
+                      fieldErrors.history_of_present_illness ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                    }`}
+                  />
+                  {renderFieldError('history_of_present_illness')}
+                </div>
+              </div>
+            )}
 
         {/* Step 3: Medical & Family */}
         {activeStep === 3 && (
@@ -285,8 +338,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 value={medicalHistory}
                 onChange={(e) => setMedicalHistory(e.target.value)}
                 placeholder="Chronic medical conditions, medications, surgeries..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+                className={`w-full text-xs p-3 rounded-xl transition-all ${
+                  fieldErrors.medical_history ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                }`}
               />
+              {renderFieldError('medical_history')}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Past Psychiatric History</label>
@@ -295,8 +351,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 value={psychiatricHistory}
                 onChange={(e) => setPsychiatricHistory(e.target.value)}
                 placeholder="Previous therapy episodes, hospitalizations, psychiatric meds..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+                className={`w-full text-xs p-3 rounded-xl transition-all ${
+                  fieldErrors.psychiatric_history ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                }`}
               />
+              {renderFieldError('psychiatric_history')}
             </div>
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Family History</label>
@@ -305,8 +364,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 value={familyHistory}
                 onChange={(e) => setFamilyHistory(e.target.value)}
                 placeholder="Family psychiatric history, substance abuse, familial stressors..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+                className={`w-full text-xs p-3 rounded-xl transition-all ${
+                  fieldErrors.family_history ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                }`}
               />
+              {renderFieldError('family_history')}
             </div>
           </div>
         )}
@@ -322,8 +384,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                   rows={2}
                   value={educationalHistory}
                   onChange={(e) => setEducationalHistory(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                  className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                    fieldErrors.educational_history ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                  }`}
                 />
+                {renderFieldError('educational_history')}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Occupational History</label>
@@ -331,8 +396,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                   rows={2}
                   value={occupationalHistory}
                   onChange={(e) => setOccupationalHistory(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                  className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                    fieldErrors.occupational_history ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                  }`}
                 />
+                {renderFieldError('occupational_history')}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -342,8 +410,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                   rows={2}
                   value={relationshipHistory}
                   onChange={(e) => setRelationshipHistory(e.target.value)}
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                  className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                    fieldErrors.relationship_history ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                  }`}
                 />
+                {renderFieldError('relationship_history')}
               </div>
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">Substance Use History</label>
@@ -352,8 +423,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                   value={substanceUse}
                   onChange={(e) => setSubstanceUse(e.target.value)}
                   placeholder="Alcohol, tobacco, illicit substances..."
-                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                  className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                    fieldErrors.substance_use ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                  }`}
                 />
+                {renderFieldError('substance_use')}
               </div>
             </div>
           </div>
@@ -392,6 +466,7 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 />
               </div>
             </div>
+            {renderFieldError('mental_status_examination')}
 
             <div>
               <label className="block text-xs font-bold text-slate-700 mb-1">Clinical Observation Notes</label>
@@ -400,8 +475,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 value={clinicalObservation}
                 onChange={(e) => setClinicalObservation(e.target.value)}
                 placeholder="Therapist's observations on client affect, non-verbal cues, and interaction..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+                className={`w-full text-xs p-3 rounded-xl transition-all ${
+                  fieldErrors.clinical_observation ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                }`}
               />
+              {renderFieldError('clinical_observation')}
             </div>
           </div>
         )}
@@ -457,6 +535,7 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                   </select>
                 </div>
               </div>
+              {renderFieldError('risk_assessment')}
             </div>
 
             <div>
@@ -466,8 +545,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 value={diagnosis.primaryDiagnosis || ''}
                 onChange={(e) => setDiagnosis({ ...diagnosis, primaryDiagnosis: e.target.value })}
                 placeholder="e.g. F41.1 Generalized Anxiety Disorder"
-                className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                  fieldErrors.diagnosis ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                }`}
               />
+              {renderFieldError('diagnosis')}
             </div>
 
             <div>
@@ -477,8 +559,12 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
                 value={treatmentGoals}
                 onChange={(e) => setTreatmentGoals(e.target.value)}
                 placeholder="Short-term & long-term therapy goals, modality (CBT, ACT, Psychodynamic)..."
-                className="w-full text-xs p-3 bg-slate-50 border border-slate-300 rounded-xl"
+                className={`w-full text-xs p-3 rounded-xl transition-all ${
+                  fieldErrors.treatment_goals || fieldErrors.treatment_plan ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                }`}
               />
+              {renderFieldError('treatment_goals')}
+              {renderFieldError('treatment_plan')}
             </div>
           </div>
         )}

@@ -21,8 +21,12 @@ class CaseHistoryViewSet(viewsets.ModelViewSet):
         if user.role in ['owner', 'admin', 'operation_manager'] or user.is_superuser:
             return CaseHistory.objects.all().order_by('-updated_at')
         
-        # Psychologists view ONLY their assigned clients' case histories
-        return CaseHistory.objects.filter(client__assigned_psychologist__user=user).order_by('-updated_at')
+        # Psychologists view assigned clients OR case histories linked to them
+        from django.db.models import Q
+        return CaseHistory.objects.filter(
+            Q(client__assigned_psychologist__user=user) | 
+            Q(psychologist__user=user)
+        ).distinct().order_by('-updated_at')
 
     def create(self, request, *args, **kwargs):
         client_id = request.data.get('client')
@@ -38,19 +42,31 @@ class CaseHistoryViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         client = serializer.validated_data.get('client')
         psychologist = serializer.validated_data.get('psychologist')
+        
         if not psychologist and client and client.assigned_psychologist:
             psychologist = client.assigned_psychologist
         if not psychologist and hasattr(self.request.user, 'psychologist_profile'):
             psychologist = self.request.user.psychologist_profile
+
+        if client and not client.assigned_psychologist and hasattr(self.request.user, 'psychologist_profile'):
+            client.assigned_psychologist = self.request.user.psychologist_profile
+            client.save()
+
         serializer.save(psychologist=psychologist)
 
     def perform_update(self, serializer):
         client = serializer.validated_data.get('client', serializer.instance.client if serializer.instance else None)
         psychologist = serializer.validated_data.get('psychologist', serializer.instance.psychologist if serializer.instance else None)
+        
         if not psychologist and client and client.assigned_psychologist:
             psychologist = client.assigned_psychologist
         if not psychologist and hasattr(self.request.user, 'psychologist_profile'):
             psychologist = self.request.user.psychologist_profile
+
+        if client and not client.assigned_psychologist and hasattr(self.request.user, 'psychologist_profile'):
+            client.assigned_psychologist = self.request.user.psychologist_profile
+            client.save()
+
         serializer.save(psychologist=psychologist)
 
 
