@@ -69,7 +69,7 @@ export const AuditLogs: React.FC = () => {
               <tr key={log.id} className="hover:bg-slate-50">
                 <td className="px-6 py-4 text-slate-500">{log.timestamp}</td>
                 <td className="px-6 py-4 font-sans font-bold text-slate-900">
-                  {log.user_detail?.name || 'Dr. Sarah Jenkins'} ({log.user_detail?.role?.toUpperCase() || 'PSYCHOLOGIST'})
+                  {log.user_detail?.name || 'System User'} ({log.user_detail?.role?.toUpperCase() || 'SYSTEM'})
                 </td>
                 <td className="px-6 py-4 font-sans">
                   <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-sky-100 text-sky-800">

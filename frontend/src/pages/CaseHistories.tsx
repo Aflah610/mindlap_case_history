@@ -171,7 +171,7 @@ export const CaseHistories: React.FC = () => {
             <tbody className="divide-y divide-slate-200 text-xs">
               {filteredClients.map((client) => {
                 const ch = caseHistories[client.id];
-                const riskLevel = ch?.risk_assessment?.suicideRisk || 'Low';
+                const riskLevel = ch?.risk_assessment?.suicideRisk || (ch ? 'Not Assessed' : 'Pending Evaluation');
                 const totalSessions = sessionNotesMap[client.id]?.length || 0;
                 
                 const psyUser = client.assigned_psychologist_detail?.user;
@@ -187,7 +187,7 @@ export const CaseHistories: React.FC = () => {
                       {effectiveRole === 'ccd' ? (
                         <span className="text-amber-700 font-semibold italic">[Confidential]</span>
                       ) : (
-                        ch?.diagnosis?.primaryDiagnosis || 'F41.1 - Generalized Anxiety Disorder'
+                        ch?.diagnosis?.primaryDiagnosis || (ch ? 'No diagnosis recorded' : <span className="text-amber-700 italic">Pending Evaluation</span>)
                       )}
                     </td>
                     <td className="px-6 py-4">
@@ -197,9 +197,10 @@ export const CaseHistories: React.FC = () => {
                         <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold ${
                           riskLevel === 'High' ? 'bg-rose-100 text-rose-800' :
                           riskLevel === 'Moderate' ? 'bg-amber-100 text-amber-800' :
-                          'bg-emerald-100 text-emerald-800'
+                          riskLevel === 'Low' ? 'bg-emerald-100 text-emerald-800' :
+                          'bg-slate-100 text-slate-600'
                         }`}>
-                          Risk: {riskLevel}
+                          {riskLevel === 'High' || riskLevel === 'Moderate' || riskLevel === 'Low' ? `Risk: ${riskLevel}` : riskLevel}
                         </span>
                       )}
                     </td>

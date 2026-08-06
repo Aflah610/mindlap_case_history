@@ -125,7 +125,7 @@ def generate_case_history_pdf(client, case_history):
     elements.append(HRFlowable(width="100%", thickness=2, color=PURPLE_PRIMARY, spaceAfter=12))
 
     # 2. Client & Evaluation Metadata Card
-    eval_by = "N/A"
+    eval_by = "Unassigned"
     updated_date = "N/A"
     if case_history and case_history.psychologist and case_history.psychologist.user:
         eval_by = f"Dr. {case_history.psychologist.user.name}"
@@ -165,21 +165,34 @@ def generate_case_history_pdf(client, case_history):
     elements.append(t_meta)
     elements.append(Spacer(1, 10))
 
-    if case_history:
+    if not case_history:
+        no_ch_data = [[
+            Paragraph("<b>Notice: No Case History Recorded</b><br/><font color='#78350F'>A clinical case history evaluation report has not been created or recorded for this client yet.</font>", body_style)
+        ]]
+        t_no_ch = Table(no_ch_data, colWidths=[540])
+        t_no_ch.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#FEF3C7')),
+            ('PADDING', (0,0), (-1,-1), 8),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#FDE68A')),
+            ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
+        ]))
+        elements.append(t_no_ch)
+        elements.append(Spacer(1, 10))
+    else:
         # Section 1: Presenting Problems & HPI
         elements.append(Paragraph("1. Presenting Problems & History of Present Illness", section_head))
-        elements.append(Paragraph(f"<b>Presenting Problems:</b><br/>{case_history.presenting_problems or 'None recorded'}", body_style))
+        elements.append(Paragraph(f"<b>Presenting Problems:</b><br/>{case_history.presenting_problems or 'No active presenting problems recorded'}", body_style))
         elements.append(Spacer(1, 6))
-        elements.append(Paragraph(f"<b>History of Present Illness (HPI):</b><br/>{case_history.history_of_present_illness or 'None recorded'}", body_style))
+        elements.append(Paragraph(f"<b>History of Present Illness (HPI):</b><br/>{case_history.history_of_present_illness or 'Not recorded'}", body_style))
         elements.append(Spacer(1, 10))
 
         # Section 2: Medical & Psychiatric Background
         elements.append(Paragraph("2. Medical & Psychiatric Background", section_head))
-        elements.append(Paragraph(f"<b>Medical History:</b> {case_history.medical_history or 'Unremarkable'}", body_style))
+        elements.append(Paragraph(f"<b>Medical History:</b> {case_history.medical_history or 'Not recorded'}", body_style))
         elements.append(Spacer(1, 4))
-        elements.append(Paragraph(f"<b>Psychiatric History:</b> {case_history.psychiatric_history or 'Unremarkable'}", body_style))
+        elements.append(Paragraph(f"<b>Psychiatric History:</b> {case_history.psychiatric_history or 'Not recorded'}", body_style))
         elements.append(Spacer(1, 4))
-        elements.append(Paragraph(f"<b>Substance Use:</b> {case_history.substance_use or 'Denies illicit substance use'}", body_style))
+        elements.append(Paragraph(f"<b>Substance Use:</b> {case_history.substance_use or 'Not recorded'}", body_style))
         elements.append(Spacer(1, 10))
 
         # Section 3: MSE Exam Table
@@ -187,16 +200,16 @@ def generate_case_history_pdf(client, case_history):
         mse = case_history.mental_status_examination or {}
         mse_table_data = [
             [
-                Paragraph(f"<b>Appearance:</b> {mse.get('appearance', 'Well-groomed')}", body_style),
-                Paragraph(f"<b>Behavior:</b> {mse.get('behavior', 'Cooperative')}", body_style)
+                Paragraph(f"<b>Appearance:</b> {mse.get('appearance', 'Not assessed')}", body_style),
+                Paragraph(f"<b>Behavior:</b> {mse.get('behavior', 'Not assessed')}", body_style)
             ],
             [
-                Paragraph(f"<b>Speech:</b> {mse.get('speech', 'Normal rate & rhythm')}", body_style),
-                Paragraph(f"<b>Mood / Affect:</b> {mse.get('moodAndAffect', 'Congruent')}", body_style)
+                Paragraph(f"<b>Speech:</b> {mse.get('speech', 'Not assessed')}", body_style),
+                Paragraph(f"<b>Mood / Affect:</b> {mse.get('moodAndAffect', 'Not assessed')}", body_style)
             ],
             [
-                Paragraph(f"<b>Thought Process:</b> {mse.get('thoughtProcess', 'Linear, goal-directed')}", body_style),
-                Paragraph(f"<b>Insight & Judgment:</b> {mse.get('insightAndJudgment', 'Good insight')}", body_style)
+                Paragraph(f"<b>Thought Process:</b> {mse.get('thoughtProcess', 'Not assessed')}", body_style),
+                Paragraph(f"<b>Insight & Judgment:</b> {mse.get('insightAndJudgment', 'Not assessed')}", body_style)
             ]
         ]
         t_mse = Table(mse_table_data, colWidths=[270, 270])
@@ -215,14 +228,14 @@ def generate_case_history_pdf(client, case_history):
         risk = case_history.risk_assessment or {}
         diag = case_history.diagnosis or {}
         
-        risk_level = risk.get('suicideRisk', 'Low')
+        risk_level = risk.get('suicideRisk', 'Not Assessed')
         diag_data = [
             [
-                Paragraph(f"<b>Suicide Risk:</b> <font color='{'#DC2626' if risk_level=='High' else '#D97706' if risk_level=='Moderate' else '#059669'}'><b>{risk_level}</b></font>", body_style),
-                Paragraph(f"<b>Self-Harm Risk:</b> {risk.get('selfHarmRisk', 'Low')}", body_style)
+                Paragraph(f"<b>Suicide Risk:</b> <font color='{'#DC2626' if risk_level=='High' else '#D97706' if risk_level=='Moderate' else '#059669' if risk_level=='Low' else '#64748B'}'><b>{risk_level}</b></font>", body_style),
+                Paragraph(f"<b>Self-Harm Risk:</b> {risk.get('selfHarmRisk', 'Not Assessed')}", body_style)
             ],
             [
-                Paragraph(f"<b>Primary Diagnosis:</b> {diag.get('primaryDiagnosis', 'F41.1 - Generalized Anxiety Disorder')}", body_style),
+                Paragraph(f"<b>Primary Diagnosis:</b> {diag.get('primaryDiagnosis', 'Pending Assessment')}", body_style),
                 Paragraph(f"<b>Secondary Diagnosis:</b> {diag.get('secondaryDiagnosis', 'None')}", body_style)
             ]
         ]
@@ -242,11 +255,11 @@ def generate_case_history_pdf(client, case_history):
         # Section 5: Treatment Plan & Goals
         elements.append(Paragraph("5. Recommended Treatment Plan & Goals", section_head))
         tp = case_history.treatment_plan or {}
-        elements.append(Paragraph(f"<b>Short-Term Goals:</b> {tp.get('shortTermGoals', 'Symptom regulation and coping skills training.')}", body_style))
+        elements.append(Paragraph(f"<b>Short-Term Goals:</b> {tp.get('shortTermGoals', 'Not specified')}", body_style))
         elements.append(Spacer(1, 4))
-        elements.append(Paragraph(f"<b>Long-Term Goals:</b> {tp.get('longTermGoals', 'Cognitive restructuring and relapse prevention.')}", body_style))
+        elements.append(Paragraph(f"<b>Long-Term Goals:</b> {tp.get('longTermGoals', 'Not specified')}", body_style))
         elements.append(Spacer(1, 4))
-        elements.append(Paragraph(f"<b>Therapeutic Modality:</b> {tp.get('modality', 'Cognitive Behavioral Therapy (CBT)')}", body_style))
+        elements.append(Paragraph(f"<b>Therapeutic Modality:</b> {tp.get('modality', 'Not specified')}", body_style))
         elements.append(Spacer(1, 10))
 
         # Section 6: Session Notes Timeline (if any exist)

@@ -108,6 +108,17 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
             </p>
           </div>
 
+          {/* Unassigned / No Case History Warning Banner */}
+          {!caseHistory && (
+            <div className="bg-amber-50 border border-amber-200 p-3.5 rounded-xl text-amber-900 flex items-center gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+              <div className="text-xs">
+                <span className="font-bold block">No Case History Recorded</span>
+                <span>A clinical case evaluation report has not been created or filled out for this client yet.</span>
+              </div>
+            </div>
+          )}
+
           {/* Demographic Metadata Card */}
           <div className="grid grid-cols-2 gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200 font-semibold text-xs">
             <div><span className="text-slate-400 font-medium">Client Name:</span> <span className="text-slate-900 font-extrabold">{client.full_name}</span></div>
@@ -115,9 +126,9 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
             <div><span className="text-slate-400 font-medium">Age / Gender:</span> {client.age} yrs ({client.gender})</div>
             <div><span className="text-slate-400 font-medium">DOB:</span> {client.dob || 'N/A'}</div>
             <div><span className="text-slate-400 font-medium">Phone:</span> {client.phone || 'N/A'}</div>
-            <div><span className="text-slate-400 font-medium">Primary Diagnosis:</span> <span className="text-slate-900 font-bold">{diag.primaryDiagnosis || 'F41.1 - Generalized Anxiety Disorder'}</span></div>
-            <div><span className="text-slate-400 font-medium">Assigned Therapist:</span> {client.assigned_psychologist_detail?.user?.name ? `Dr. ${client.assigned_psychologist_detail.user.name}` : 'Dr. Sarah Jenkins'}</div>
-            <div><span className="text-slate-400 font-medium">Report Status:</span> <span className="text-emerald-700 font-bold inline-flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Active Case</span></div>
+            <div><span className="text-slate-400 font-medium">Primary Diagnosis:</span> <span className="text-slate-900 font-bold">{diag.primaryDiagnosis || 'Pending Assessment'}</span></div>
+            <div><span className="text-slate-400 font-medium">Assigned Therapist:</span> {client.assigned_psychologist_detail?.user?.name ? `Dr. ${client.assigned_psychologist_detail.user.name}` : <span className="text-amber-700 italic">Unassigned</span>}</div>
+            <div><span className="text-slate-400 font-medium">Report Status:</span> {caseHistory ? <span className="text-emerald-700 font-bold inline-flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Active Case</span> : <span className="text-amber-700 font-bold inline-flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Pending Evaluation</span>}</div>
           </div>
 
           {/* Section 1: Presenting Problems */}
@@ -127,7 +138,7 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
             </h4>
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
               <p><strong className="text-slate-900">Presenting Problems:</strong> {caseHistory?.presenting_problems || 'No active presenting problems recorded.'}</p>
-              <p><strong className="text-slate-900">History of Present Illness (HPI):</strong> {caseHistory?.history_of_present_illness || 'Not specified.'}</p>
+              <p><strong className="text-slate-900">History of Present Illness (HPI):</strong> {caseHistory?.history_of_present_illness || 'Not recorded.'}</p>
             </div>
           </div>
 
@@ -137,10 +148,10 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
               <FileText className="w-3.5 h-3.5 text-purple-600" /> 2. Medical & Psychiatric Background
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-3 rounded-lg border border-slate-200">
-              <div><strong className="text-slate-900">Medical History:</strong> {caseHistory?.medical_history || 'Unremarkable'}</div>
-              <div><strong className="text-slate-900">Psychiatric History:</strong> {caseHistory?.psychiatric_history || 'Unremarkable'}</div>
-              <div><strong className="text-slate-900">Substance Use:</strong> {caseHistory?.substance_use || 'Denies illicit substance use'}</div>
-              <div><strong className="text-slate-900">Family History:</strong> {caseHistory?.family_history || 'Unremarkable'}</div>
+              <div><strong className="text-slate-900">Medical History:</strong> {caseHistory?.medical_history || 'Not recorded.'}</div>
+              <div><strong className="text-slate-900">Psychiatric History:</strong> {caseHistory?.psychiatric_history || 'Not recorded.'}</div>
+              <div><strong className="text-slate-900">Substance Use:</strong> {caseHistory?.substance_use || 'Not recorded.'}</div>
+              <div><strong className="text-slate-900">Family History:</strong> {caseHistory?.family_history || 'Not recorded.'}</div>
             </div>
           </div>
 
@@ -150,12 +161,12 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
               <FileText className="w-3.5 h-3.5 text-purple-600" /> 3. Mental Status Examination (MSE)
             </h4>
             <div className="grid grid-cols-2 gap-2 text-xs bg-purple-50/40 p-3 rounded-lg border border-purple-200">
-              <div><strong className="text-slate-900">Appearance:</strong> {mse.appearance || 'Well-groomed'}</div>
-              <div><strong className="text-slate-900">Behavior:</strong> {mse.behavior || 'Cooperative'}</div>
-              <div><strong className="text-slate-900">Speech:</strong> {mse.speech || 'Normal rate & rhythm'}</div>
-              <div><strong className="text-slate-900">Mood / Affect:</strong> {mse.moodAndAffect || 'Congruent'}</div>
-              <div><strong className="text-slate-900">Thought Process:</strong> {mse.thoughtProcess || 'Linear, goal-directed'}</div>
-              <div><strong className="text-slate-900">Insight & Judgment:</strong> {mse.insightAndJudgment || 'Good insight'}</div>
+              <div><strong className="text-slate-900">Appearance:</strong> {mse.appearance || 'Not assessed'}</div>
+              <div><strong className="text-slate-900">Behavior:</strong> {mse.behavior || 'Not assessed'}</div>
+              <div><strong className="text-slate-900">Speech:</strong> {mse.speech || 'Not assessed'}</div>
+              <div><strong className="text-slate-900">Mood / Affect:</strong> {mse.moodAndAffect || 'Not assessed'}</div>
+              <div><strong className="text-slate-900">Thought Process:</strong> {mse.thoughtProcess || 'Not assessed'}</div>
+              <div><strong className="text-slate-900">Insight & Judgment:</strong> {mse.insightAndJudgment || 'Not assessed'}</div>
             </div>
           </div>
 
@@ -166,10 +177,10 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
             </h4>
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-2">
               <div className="flex items-center gap-4">
-                <span><strong className="text-slate-900">Suicide Risk:</strong> <span className={`font-bold ${risk.suicideRisk === 'High' ? 'text-rose-600' : risk.suicideRisk === 'Moderate' ? 'text-amber-600' : 'text-emerald-600'}`}>{risk.suicideRisk || 'Low'}</span></span>
-                <span><strong className="text-slate-900">Self-Harm Risk:</strong> <span className="font-semibold text-slate-700">{risk.selfHarmRisk || 'Low'}</span></span>
+                <span><strong className="text-slate-900">Suicide Risk:</strong> <span className={`font-bold ${risk.suicideRisk === 'High' ? 'text-rose-600' : risk.suicideRisk === 'Moderate' ? 'text-amber-600' : risk.suicideRisk === 'Low' ? 'text-emerald-600' : 'text-slate-500'}`}>{risk.suicideRisk || 'Not assessed'}</span></span>
+                <span><strong className="text-slate-900">Self-Harm Risk:</strong> <span className="font-semibold text-slate-700">{risk.selfHarmRisk || 'Not assessed'}</span></span>
               </div>
-              <p><strong className="text-slate-900">Primary Diagnosis:</strong> {diag.primaryDiagnosis || 'F41.1 - Generalized Anxiety Disorder'}</p>
+              <p><strong className="text-slate-900">Primary Diagnosis:</strong> {diag.primaryDiagnosis || 'Pending Assessment'}</p>
               {risk.riskNotes && <p><strong className="text-slate-900">Risk Notes:</strong> {risk.riskNotes}</p>}
             </div>
           </div>
@@ -180,9 +191,9 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
               <FileText className="w-3.5 h-3.5 text-purple-600" /> 5. Recommended Treatment Plan & Goals
             </h4>
             <div className="bg-slate-50 p-3 rounded-lg border border-slate-200 space-y-1.5">
-              <p><strong className="text-slate-900">Short-Term Goals:</strong> {tp.shortTermGoals || 'Symptom regulation and coping skills training.'}</p>
-              <p><strong className="text-slate-900">Long-Term Goals:</strong> {tp.longTermGoals || 'Cognitive restructuring and relapse prevention.'}</p>
-              <p><strong className="text-slate-900">Therapeutic Modality:</strong> {tp.modality || 'Cognitive Behavioral Therapy (CBT)'}</p>
+              <p><strong className="text-slate-900">Short-Term Goals:</strong> {tp.shortTermGoals || 'Not specified.'}</p>
+              <p><strong className="text-slate-900">Long-Term Goals:</strong> {tp.longTermGoals || 'Not specified.'}</p>
+              <p><strong className="text-slate-900">Therapeutic Modality:</strong> {tp.modality || 'Not specified.'}</p>
             </div>
           </div>
 

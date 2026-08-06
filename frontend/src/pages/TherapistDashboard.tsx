@@ -52,7 +52,7 @@ export const TherapistDashboard: React.FC = () => {
             <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
             Clinical Therapy Workspace
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, Dr. {user?.name || 'Jenkins'}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, Dr. {user?.name || 'Therapist'}</h1>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
             Isolated confidential workspace. You have access strictly to patients assigned to your clinical care.
           </p>

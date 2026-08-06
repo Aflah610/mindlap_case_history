@@ -27,7 +27,7 @@ export const StaffManagement: React.FC = () => {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('Ccd@123');
+  const [password, setPassword] = useState('');
   const [role, setRole] = useState<'ccd' | 'psychologist' | 'operation_manager'>('ccd');
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -65,6 +65,27 @@ export const StaffManagement: React.FC = () => {
     }
   };
 
+  const resetCreateForm = () => {
+    setUsername('');
+    setName('');
+    setEmail('');
+    setPhone('');
+    setPassword('');
+    setRole('ccd');
+    setErrorMsg(null);
+    setShowCreatePassword(false);
+  };
+
+  const openCreateModal = () => {
+    resetCreateForm();
+    setShowCreateModal(true);
+  };
+
+  const closeCreateModal = () => {
+    setShowCreateModal(false);
+    resetCreateForm();
+  };
+
   const handleCreateUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitting(true);
@@ -89,12 +110,7 @@ export const StaffManagement: React.FC = () => {
         role: role.toUpperCase().replace('_', ' ')
       });
 
-      setShowCreateModal(false);
-      setUsername('');
-      setName('');
-      setEmail('');
-      setPhone('');
-      setPassword('Ccd@123');
+      closeCreateModal();
       fetchUsers();
     } catch (err: any) {
       if (err.response?.data?.username) {
@@ -257,7 +273,7 @@ export const StaffManagement: React.FC = () => {
 
         {(effectiveRole === 'owner' || effectiveRole === 'admin' || effectiveRole === 'operation_manager') && (
           <button
-            onClick={() => setShowCreateModal(true)}
+            onClick={openCreateModal}
             className="flex items-center gap-2 px-4 py-2 text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 rounded-xl shadow-sm transition-all"
           >
             <UserPlus className="w-4 h-4" /> Create Staff Account
@@ -540,7 +556,7 @@ export const StaffManagement: React.FC = () => {
                 Create New Staff Account
               </h3>
               <button
-                onClick={() => setShowCreateModal(false)}
+                onClick={closeCreateModal}
                 className="text-slate-400 hover:text-slate-600 font-bold"
               >
                 ✕
@@ -626,6 +642,8 @@ export const StaffManagement: React.FC = () => {
                     type={showCreatePassword ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
+                    autoComplete="new-password"
+                    placeholder="Enter initial password or generate random"
                     className="w-full text-xs p-2.5 pr-32 bg-slate-50 border border-slate-300 rounded-xl font-mono focus:outline-none focus:border-sky-500 font-bold text-slate-800"
                     required
                   />
@@ -652,7 +670,7 @@ export const StaffManagement: React.FC = () => {
               <div className="flex justify-end gap-2 pt-3 border-t border-slate-100">
                 <button
                   type="button"
-                  onClick={() => setShowCreateModal(false)}
+                  onClick={closeCreateModal}
                   className="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl"
                 >
                   Cancel
