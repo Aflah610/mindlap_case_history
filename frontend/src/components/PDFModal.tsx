@@ -27,7 +27,7 @@ export const PDFModal: React.FC<PDFModalProps> = ({ client, caseHistory: initial
       if (effectiveRole === 'ccd') return;
       
       const [chRes, snRes] = await Promise.allSettled([
-        api.get('case-histories/'),
+        api.get('case-history/'),
         api.get('session-notes/')
       ]);
 

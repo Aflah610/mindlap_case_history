@@ -3,7 +3,7 @@ import { Client, CaseHistory, MentalStatusExamination, RiskAssessment, ClinicalD
 import { api } from '../services/api';
 import {
   FileText, CheckCircle2, ChevronRight, ChevronLeft, Save,
-  AlertCircle, ShieldAlert, HeartPulse, Sparkles, Clock, Plus
+  AlertCircle, ShieldAlert, HeartPulse, Sparkles, Clock, Plus, X
 } from 'lucide-react';
 import { SessionTimeline } from './SessionTimeline';
 
@@ -13,6 +13,13 @@ interface CaseHistoryWizardProps {
   sessionNotes?: SessionNote[];
   onSaveSuccess: () => void;
   onRefreshSessionNotes?: () => void;
+}
+
+interface ValidationErrorItem {
+  step: number;
+  field: string;
+  label: string;
+  message: string;
 }
 
 export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
@@ -28,6 +35,11 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Validation Popup Modal state
+  const [showValidationModal, setShowValidationModal] = useState<boolean>(false);
+  const [validationErrorsList, setValidationErrorsList] = useState<ValidationErrorItem[]>([]);
+  const [validationModalTitle, setValidationModalTitle] = useState<string>('Validation Action Required');
 
   // Form State
   const [presentingProblems, setPresentingProblems] = useState(existingCaseHistory?.presenting_problems || '');
@@ -89,11 +101,52 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
     { number: 6, title: 'Diagnosis & Plan' },
   ];
 
+  const validateForm = (): ValidationErrorItem[] => {
+    const errors: ValidationErrorItem[] = [];
+
+    if (!presentingProblems || !presentingProblems.trim()) {
+      errors.push({
+        step: 2,
+        field: 'presenting_problems',
+        label: 'Presenting Complaints (Step 2)',
+        message: 'Presenting Complaints field is required. Please specify the client\'s chief complaints.'
+      });
+    }
+
+    if (!diagnosis.primaryDiagnosis || !diagnosis.primaryDiagnosis.trim()) {
+      errors.push({
+        step: 6,
+        field: 'diagnosis',
+        label: 'Primary Clinical Diagnosis (Step 6)',
+        message: 'Primary Clinical Diagnosis is required for clinical documentation. Please enter a diagnosis.'
+      });
+    }
+
+    return errors;
+  };
+
   const handleSave = async () => {
     setSubmitting(true);
     setSaveMessage(null);
     setErrorMessage(null);
     setFieldErrors({});
+    setValidationErrorsList([]);
+
+    // Client-side validation check
+    const clientErrors = validateForm();
+    if (clientErrors.length > 0) {
+      const errorsMap: Record<string, string> = {};
+      clientErrors.forEach(err => {
+        errorsMap[err.field] = err.message;
+      });
+      setFieldErrors(errorsMap);
+      setValidationErrorsList(clientErrors);
+      setValidationModalTitle('Case History Form Validation Required');
+      setShowValidationModal(true);
+      setActiveStep(clientErrors[0].step);
+      setSubmitting(false);
+      return;
+    }
 
     const payload = {
       client: client.id,
@@ -120,35 +173,72 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
 
     try {
       if (existingCaseHistory?.id) {
-        await api.put(`case-histories/${existingCaseHistory.id}/`, payload);
+        await api.put(`case-history/${existingCaseHistory.id}/`, payload);
       } else {
-        await api.post('case-histories/', payload);
+        await api.post('case-history/', payload);
       }
       setSaveMessage('Case History saved successfully!');
       onSaveSuccess();
     } catch (err: any) {
       console.error('Save case history error:', err);
       const data = err.response?.data;
+      const status = err.response?.status;
       const errorsMap: Record<string, string> = {};
+      const serverErrorList: ValidationErrorItem[] = [];
 
       if (data && typeof data === 'object') {
         Object.keys(data).forEach((key) => {
           const val = data[key];
-          errorsMap[key] = Array.isArray(val) ? val.join(' ') : String(val);
+          const msg = Array.isArray(val) ? val.join(' ') : String(val);
+          errorsMap[key] = msg;
+
+          let targetStep = 1;
+          if (key === 'presenting_problems' || key === 'history_of_present_illness') targetStep = 2;
+          else if (['medical_history', 'psychiatric_history', 'family_history', 'substance_use'].includes(key)) targetStep = 3;
+          else if (['personal_history', 'educational_history', 'occupational_history', 'relationship_history', 'social_history'].includes(key)) targetStep = 4;
+          else if (['mental_status_examination', 'clinical_observation'].includes(key)) targetStep = 5;
+          else if (['diagnosis', 'treatment_goals', 'treatment_plan', 'risk_assessment', 'therapist_notes'].includes(key)) targetStep = 6;
+
+          serverErrorList.push({
+            step: targetStep,
+            field: key,
+            label: `${key.replace(/_/g, ' ').toUpperCase()} (Step ${targetStep})`,
+            message: msg
+          });
         });
         setFieldErrors(errorsMap);
 
-        if (errorsMap.presenting_problems || errorsMap.history_of_present_illness) setActiveStep(2);
-        else if (errorsMap.medical_history || errorsMap.psychiatric_history || errorsMap.family_history || errorsMap.substance_use) setActiveStep(3);
-        else if (errorsMap.personal_history || errorsMap.educational_history || errorsMap.occupational_history || errorsMap.relationship_history || errorsMap.social_history) setActiveStep(4);
-        else if (errorsMap.mental_status_examination || errorsMap.clinical_observation) setActiveStep(5);
-        else if (errorsMap.diagnosis || errorsMap.treatment_goals || errorsMap.treatment_plan || errorsMap.risk_assessment || errorsMap.therapist_notes) setActiveStep(6);
-        else if (errorsMap.client || errorsMap.psychologist) setActiveStep(1);
+        if (serverErrorList.length > 0) {
+          setActiveStep(serverErrorList[0].step);
+          setValidationErrorsList(serverErrorList);
+          setValidationModalTitle(`Validation Error (${status || '400'})`);
+          setShowValidationModal(true);
+        }
 
         const fieldsList = Object.keys(errorsMap).map(k => k.replace(/_/g, ' ')).join(', ');
         setErrorMessage(`Validation error on field(s): ${fieldsList}. Please check highlighted fields below.`);
+      } else if (status === 404) {
+        const errorItem: ValidationErrorItem = {
+          step: 1,
+          field: 'api_route',
+          label: 'Server Endpoint Error (404)',
+          message: 'The case history save endpoint was not found on the server (HTTP 404 Not Found).'
+        };
+        setValidationErrorsList([errorItem]);
+        setValidationModalTitle('Server Endpoint 404 Not Found');
+        setShowValidationModal(true);
+        setErrorMessage('Request failed with status code 404. Server endpoint not found.');
       } else {
-        setErrorMessage(err.message || 'Failed to save Case History. Please check server configuration.');
+        const genericMsg = err.message || 'Failed to save Case History. Please check server configuration.';
+        setValidationErrorsList([{
+          step: activeStep,
+          field: 'server_error',
+          label: `System Error (${status || 'Network'})`,
+          message: genericMsg
+        }]);
+        setValidationModalTitle('Unable to Save Case History');
+        setShowValidationModal(true);
+        setErrorMessage(genericMsg);
       }
     } finally {
       setSubmitting(false);
@@ -613,6 +703,79 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
               sessionNotes={sessionNotes}
               onRefresh={onRefreshSessionNotes || onSaveSuccess}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Validation Popup Modal */}
+      {showValidationModal && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-rose-100 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start justify-between pb-3 border-b border-slate-100">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-rose-100 text-rose-700 rounded-xl">
+                  <ShieldAlert className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-slate-900">
+                    {validationModalTitle}
+                  </h3>
+                  <p className="text-xs font-medium text-slate-500">
+                    Please correct the following issue(s) before saving
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowValidationModal(false)}
+                className="text-slate-400 hover:text-slate-600 text-sm p-1 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="py-4 space-y-3 max-h-[60vh] overflow-y-auto">
+              {validationErrorsList.map((err, idx) => (
+                <div
+                  key={idx}
+                  className="p-3.5 bg-rose-50/70 border border-rose-200 rounded-xl flex items-start justify-between gap-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <span className="bg-rose-600 text-white font-extrabold text-[10px] px-2 py-0.5 rounded-md uppercase">
+                        Step {err.step}
+                      </span>
+                      <span className="font-extrabold text-rose-900">
+                        {err.label}
+                      </span>
+                    </div>
+                    <p className="text-rose-800 font-medium leading-relaxed">
+                      {err.message}
+                    </p>
+                  </div>
+
+                  {err.step > 0 && (
+                    <button
+                      onClick={() => {
+                        setActiveStep(err.step);
+                        setShowValidationModal(false);
+                      }}
+                      className="shrink-0 bg-white hover:bg-rose-100 text-rose-700 font-bold border border-rose-300 px-3 py-1.5 rounded-lg text-[11px] transition-colors shadow-2xs"
+                    >
+                      Go to Step {err.step} →
+                    </button>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <div className="pt-3 border-t border-slate-100 flex items-center justify-end">
+              <button
+                onClick={() => setShowValidationModal(false)}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold py-2.5 rounded-xl transition-all shadow-sm"
+              >
+                Understand & Fix Errors
+              </button>
+            </div>
           </div>
         </div>
       )}

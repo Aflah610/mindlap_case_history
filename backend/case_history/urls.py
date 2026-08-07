@@ -4,9 +4,12 @@ from .views import CaseHistoryViewSet, SessionNoteViewSet, PDFDownloadView
 
 router = DefaultRouter()
 router.register(r'case-history', CaseHistoryViewSet, basename='case-history')
+router.register(r'case-histories', CaseHistoryViewSet, basename='case-histories')
 router.register(r'session-notes', SessionNoteViewSet, basename='session-notes')
 
 urlpatterns = [
     path('case-history/<int:pk>/pdf/', PDFDownloadView.as_view(), name='case-history-pdf'),
+    path('case-histories/<int:pk>/pdf/', PDFDownloadView.as_view(), name='case-histories-pdf'),
     path('', include(router.urls)),
 ]
+

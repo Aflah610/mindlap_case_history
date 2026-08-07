@@ -31,7 +31,7 @@ export const CaseHistories: React.FC = () => {
       
       if (effectiveRole !== 'ccd') {
         const [chRes, snRes] = await Promise.all([
-          api.get('case-histories/'),
+          api.get('case-history/'),
           api.get('session-notes/')
         ]);
 
