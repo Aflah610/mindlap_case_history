@@ -1,6 +1,7 @@
 import React from 'react';
 import { Appointment } from '../types';
 import { Calendar as CalendarIcon, Clock, User, Video, MapPin, CalendarDays } from 'lucide-react';
+import { formatAppointmentTime } from '../utils/dateUtils';
 
 interface TherapistPersonalCalendarProps {
   appointments: Appointment[];
@@ -89,7 +90,7 @@ export const TherapistPersonalCalendar: React.FC<TherapistPersonalCalendarProps>
                       <div className="flex items-center justify-between text-[10px] text-sky-700 font-bold">
                         <span className="flex items-center gap-1">
                           <Clock className="w-3 h-3 text-sky-500" />
-                          {new Date(app.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          {formatAppointmentTime(app.appointment_date)}
                         </span>
                         {app.mode === 'Online' ? (
                           <span className="text-teal-600 flex items-center gap-0.5">

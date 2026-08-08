@@ -4,6 +4,7 @@ import { api } from '../services/api';
 import { Appointment, Client, Psychologist } from '../types';
 import { Calendar, PlusCircle, RefreshCw } from 'lucide-react';
 import { AppointmentBookingModal } from '../components/AppointmentBookingModal';
+import { formatAppointmentDateTime } from '../utils/dateUtils';
 
 export const Appointments: React.FC = () => {
   const { effectiveRole } = useAuth();
@@ -94,8 +95,8 @@ export const Appointments: React.FC = () => {
                 <td className="px-6 py-4 text-sky-700 font-semibold">
                   {apt.psychologist_detail?.user?.name ? `Dr. ${apt.psychologist_detail.user.name}` : 'Unassigned'}
                 </td>
-                <td className="px-6 py-4 font-mono text-slate-700">
-                  {new Date(apt.appointment_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                <td className="px-6 py-4 font-mono font-bold text-slate-800">
+                  {formatAppointmentDateTime(apt.appointment_date)}
                 </td>
                 <td className="px-6 py-4 text-slate-500">{apt.remarks || 'Intake / Follow-up session'}</td>
                 <td className="px-6 py-4">

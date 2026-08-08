@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Client, CaseHistory, MentalStatusExamination, RiskAssessment, ClinicalDiagnosis, TreatmentPlan, SessionNote } from '../types';
 import { api } from '../services/api';
 import {
@@ -59,15 +59,15 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
 
   // Structured MSE
   const [mse, setMse] = useState<MentalStatusExamination>(existingCaseHistory?.mental_status_examination || {
-    appearance: 'Well-groomed',
-    behavior: 'Cooperative',
-    speech: 'Normal rate and tone',
-    moodAndAffect: 'Euthymic',
-    thoughtProcess: 'Goal-directed',
-    thoughtContent: 'No delusions or suicidal ideation',
-    perception: 'No hallucinations',
-    cognition: 'Alert and oriented x4',
-    insightAndJudgment: 'Good insight'
+    appearance: '',
+    behavior: '',
+    speech: '',
+    moodAndAffect: '',
+    thoughtProcess: '',
+    thoughtContent: '',
+    perception: '',
+    cognition: '',
+    insightAndJudgment: ''
   });
 
   // Structured Risk
@@ -86,11 +86,32 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
   });
 
   // Structured Treatment Plan
-  const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>(existingCaseHistory?.treatment_plan || {
-    shortTermGoals: '',
-    longTermGoals: '',
-    modality: 'Cognitive Behavioral Therapy (CBT)'
+  const [treatmentPlan, setTreatmentPlan] = useState<TreatmentPlan>({
+    shortTermGoals: existingCaseHistory?.treatment_plan?.shortTermGoals || '',
+    longTermGoals: existingCaseHistory?.treatment_plan?.longTermGoals || '',
+    modality: existingCaseHistory?.treatment_plan?.modality || 'Cognitive Behavioral Therapy (CBT)'
   });
+
+  useEffect(() => {
+    if (existingCaseHistory) {
+      if (existingCaseHistory.mental_status_examination) {
+        setMse(existingCaseHistory.mental_status_examination);
+      }
+      if (existingCaseHistory.treatment_plan) {
+        setTreatmentPlan({
+          shortTermGoals: existingCaseHistory.treatment_plan?.shortTermGoals || '',
+          longTermGoals: existingCaseHistory.treatment_plan?.longTermGoals || '',
+          modality: existingCaseHistory.treatment_plan?.modality || 'Cognitive Behavioral Therapy (CBT)'
+        });
+      }
+      if (existingCaseHistory.risk_assessment) {
+        setRisk(existingCaseHistory.risk_assessment);
+      }
+      if (existingCaseHistory.diagnosis) {
+        setDiagnosis(existingCaseHistory.diagnosis);
+      }
+    }
+  }, [existingCaseHistory]);
 
   const steps = [
     { number: 1, title: 'Demographics' },
@@ -284,14 +305,14 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
       <div className="bg-gradient-to-r from-purple-50 via-sky-50 to-purple-50 border border-purple-200 p-4 rounded-xl flex items-center justify-between text-xs">
         <div className="flex items-center gap-3">
           <div className="p-2.5 bg-purple-600 text-white rounded-xl font-black text-sm">
-            #{sessionNotes.length + 1}
+            Session {sessionNotes.length + 1}
           </div>
           <div>
             <div className="font-extrabold text-slate-800">
               Session Tracking: <span className="text-purple-700 font-extrabold">{sessionNotes.length} Sessions Already Written</span>
             </div>
             <div className="text-[11px] text-slate-500 font-semibold mt-0.5">
-              Next Session You Are Writing: <strong className="text-purple-900 font-black">Session #{sessionNotes.length + 1}</strong>
+              Next Session You Are Writing: <strong className="text-purple-900 font-black">Session {sessionNotes.length + 1}</strong>
             </div>
           </div>
         </div>
@@ -527,33 +548,104 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
         {activeStep === 5 && (
           <div className="space-y-4">
             <h3 className="text-sm font-bold text-slate-800 border-b pb-2">Step 5: Mental Status Examination (MSE) & Clinical Observation</h3>
-            <div className="grid grid-cols-3 gap-3">
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Appearance</label>
-                <input
-                  type="text"
-                  value={mse.appearance || ''}
-                  onChange={(e) => setMse({ ...mse, appearance: e.target.value })}
-                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
-                />
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Appearance</label>
+                  <input
+                    type="text"
+                    value={mse.appearance || ''}
+                    onChange={(e) => setMse({ ...mse, appearance: e.target.value })}
+                    placeholder="e.g. Well-groomed, neat, business casual"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Behavior & Eye Contact</label>
+                  <input
+                    type="text"
+                    value={mse.behavior || ''}
+                    onChange={(e) => setMse({ ...mse, behavior: e.target.value })}
+                    placeholder="e.g. Cooperative, restless, good eye contact"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Speech & Communication</label>
+                  <input
+                    type="text"
+                    value={mse.speech || ''}
+                    onChange={(e) => setMse({ ...mse, speech: e.target.value })}
+                    placeholder="e.g. Normal rate, volume, and rhythm"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Behavior & Eye Contact</label>
-                <input
-                  type="text"
-                  value={mse.behavior || ''}
-                  onChange={(e) => setMse({ ...mse, behavior: e.target.value })}
-                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Mood & Affect</label>
+                  <input
+                    type="text"
+                    value={mse.moodAndAffect || ''}
+                    onChange={(e) => setMse({ ...mse, moodAndAffect: e.target.value })}
+                    placeholder="e.g. Anxious mood, affect congruent, euthymic"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Thought Process</label>
+                  <input
+                    type="text"
+                    value={mse.thoughtProcess || ''}
+                    onChange={(e) => setMse({ ...mse, thoughtProcess: e.target.value })}
+                    placeholder="e.g. Goal-directed, linear, circumstantial"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Thought Content & Preoccupations</label>
+                  <input
+                    type="text"
+                    value={mse.thoughtContent || ''}
+                    onChange={(e) => setMse({ ...mse, thoughtContent: e.target.value })}
+                    placeholder="e.g. No delusions, obsessions, or suicidal ideation"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-[11px] font-bold text-slate-700 mb-1">Mood & Affect</label>
-                <input
-                  type="text"
-                  value={mse.moodAndAffect || ''}
-                  onChange={(e) => setMse({ ...mse, moodAndAffect: e.target.value })}
-                  className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
-                />
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Perception & Sensory</label>
+                  <input
+                    type="text"
+                    value={mse.perception || ''}
+                    onChange={(e) => setMse({ ...mse, perception: e.target.value })}
+                    placeholder="e.g. No hallucinations or illusions"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Cognition & Orientation</label>
+                  <input
+                    type="text"
+                    value={mse.cognition || ''}
+                    onChange={(e) => setMse({ ...mse, cognition: e.target.value })}
+                    placeholder="e.g. Alert and oriented x4, intact memory"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Insight & Clinical Judgment</label>
+                  <input
+                    type="text"
+                    value={mse.insightAndJudgment || ''}
+                    onChange={(e) => setMse({ ...mse, insightAndJudgment: e.target.value })}
+                    placeholder="e.g. Good insight and judgment"
+                    className="w-full text-xs p-2 bg-slate-50 border border-slate-300 rounded-lg"
+                  />
+                </div>
               </div>
             </div>
             {renderFieldError('mental_status_examination')}
@@ -628,34 +720,87 @@ export const CaseHistoryWizard: React.FC<CaseHistoryWizardProps> = ({
               {renderFieldError('risk_assessment')}
             </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Primary Clinical Diagnosis (DSM-5 / ICD-11)</label>
-              <input
-                type="text"
-                value={diagnosis.primaryDiagnosis || ''}
-                onChange={(e) => setDiagnosis({ ...diagnosis, primaryDiagnosis: e.target.value })}
-                placeholder="e.g. F41.1 Generalized Anxiety Disorder"
-                className={`w-full text-xs p-2.5 rounded-xl transition-all ${
-                  fieldErrors.diagnosis ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
-                }`}
-              />
-              {renderFieldError('diagnosis')}
-            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Primary Clinical Diagnosis (DSM-5 / ICD-11)</label>
+                <input
+                  type="text"
+                  value={diagnosis.primaryDiagnosis || ''}
+                  onChange={(e) => setDiagnosis({ ...diagnosis, primaryDiagnosis: e.target.value })}
+                  placeholder="e.g. F41.1 Generalized Anxiety Disorder"
+                  className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                    fieldErrors.diagnosis ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
+                  }`}
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Treatment Plan & Modality</label>
-              <textarea
-                rows={3}
-                value={treatmentGoals}
-                onChange={(e) => setTreatmentGoals(e.target.value)}
-                placeholder="Short-term & long-term therapy goals, modality (CBT, ACT, Psychodynamic)..."
-                className={`w-full text-xs p-3 rounded-xl transition-all ${
-                  fieldErrors.treatment_goals || fieldErrors.treatment_plan ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-slate-50 border border-slate-300 text-slate-900'
-                }`}
-              />
-              {renderFieldError('treatment_goals')}
-              {renderFieldError('treatment_plan')}
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">Secondary Diagnosis (Optional)</label>
+                <input
+                  type="text"
+                  value={diagnosis.secondaryDiagnosis || ''}
+                  onChange={(e) => setDiagnosis({ ...diagnosis, secondaryDiagnosis: e.target.value })}
+                  placeholder="e.g. F51.01 Primary Insomnia"
+                  className="w-full text-xs p-2.5 bg-slate-50 border border-slate-300 rounded-xl"
+                />
+              </div>
             </div>
+            {renderFieldError('diagnosis')}
+
+            {/* Treatment Plan Section Breakdown */}
+            <div className="p-4 bg-sky-50/60 border border-sky-200 rounded-2xl space-y-3">
+              <h4 className="text-xs font-extrabold text-sky-900 uppercase tracking-wider">Recommended Treatment Plan & Goals</h4>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Short-Term Therapy Goals</label>
+                  <input
+                    type="text"
+                    value={treatmentPlan.shortTermGoals || ''}
+                    onChange={(e) => setTreatmentPlan({ ...treatmentPlan, shortTermGoals: e.target.value })}
+                    placeholder="e.g. Master Progressive Muscle Relaxation, thought journal entries"
+                    className="w-full text-xs p-2 bg-white border border-sky-300 rounded-lg font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-700 mb-1">Long-Term Therapy Goals</label>
+                  <input
+                    type="text"
+                    value={treatmentPlan.longTermGoals || ''}
+                    onChange={(e) => setTreatmentPlan({ ...treatmentPlan, longTermGoals: e.target.value })}
+                    placeholder="e.g. Cognitive restructuring of core perfectionist beliefs, full occupational functioning"
+                    className="w-full text-xs p-2 bg-white border border-sky-300 rounded-lg font-medium"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Therapeutic Modality / Approach</label>
+                <input
+                  type="text"
+                  value={treatmentPlan.modality || ''}
+                  onChange={(e) => setTreatmentPlan({ ...treatmentPlan, modality: e.target.value })}
+                  placeholder="e.g. Cognitive Behavioral Therapy (CBT) & ERP"
+                  className="w-full text-xs p-2 bg-white border border-sky-300 rounded-lg font-medium"
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-slate-700 mb-1">Overall Treatment Strategy / Notes</label>
+                <textarea
+                  rows={2}
+                  value={treatmentGoals}
+                  onChange={(e) => setTreatmentGoals(e.target.value)}
+                  placeholder="Detailed treatment strategy, frequency of sessions, interdisciplinary consultations..."
+                  className={`w-full text-xs p-2.5 rounded-xl transition-all ${
+                    fieldErrors.treatment_goals || fieldErrors.treatment_plan ? 'bg-rose-50 border-2 border-rose-500 text-rose-900 focus:outline-none' : 'bg-white border border-sky-300 text-slate-900'
+                  }`}
+                />
+              </div>
+            </div>
+            {renderFieldError('treatment_goals')}
+            {renderFieldError('treatment_plan')}
           </div>
         )}
       </div>

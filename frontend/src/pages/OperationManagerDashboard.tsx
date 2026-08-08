@@ -35,6 +35,17 @@ export const OperationManagerDashboard: React.FC = () => {
     }
   };
 
+  const todayAppointmentsCount = appointments.filter(app => {
+    if (!app.appointment_date) return false;
+    const d = new Date(app.appointment_date);
+    const today = new Date();
+    return (
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate()
+    );
+  }).length;
+
   if (loading) {
     return (
       <div className="p-8 text-center text-slate-500 font-medium">
@@ -74,7 +85,7 @@ export const OperationManagerDashboard: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider">Scheduled Today</span>
             <Calendar className="w-5 h-5 text-sky-600" />
           </div>
-          <div className="text-3xl font-extrabold text-slate-800">{appointments.length}</div>
+          <div className="text-3xl font-extrabold text-slate-800">{todayAppointmentsCount}</div>
           <span className="text-[11px] text-sky-600 font-semibold">Active consultations</span>
         </div>
 

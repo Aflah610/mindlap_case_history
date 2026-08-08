@@ -89,59 +89,59 @@ def seed():
     )
 
     # 4. Clients
-    c1, _ = Client.objects.get_or_create(
-        client_code='ML-2026-001',
-        defaults={
-            'full_name': 'Jonathan Reed',
-            'gender': 'Male',
-            'age': 34,
-            'dob': date(1992, 4, 15),
-            'phone': '+1 (555) 123-4567',
-            'email': 'jonathan.reed@example.com',
-            'address': '742 Evergreen Terrace, Springfield, OR',
-            'occupation': 'Software Engineer',
-            'marital_status': 'Married',
-            'emergency_contact': 'Emily Reed (Wife) - +1 (555) 999-1122',
-            'assigned_psychologist': p1,
-            'created_by': ccd_user
-        }
-    )
+    c1 = Client.objects.filter(full_name='Jonathan Reed').first()
+    if not c1:
+        c1 = Client.objects.create(
+            client_code='ML-0001',
+            full_name='Jonathan Reed',
+            gender='Male',
+            age=34,
+            dob=date(1992, 4, 15),
+            phone='+1 (555) 123-4567',
+            email='jonathan.reed@example.com',
+            address='742 Evergreen Terrace, Springfield, OR',
+            occupation='Software Engineer',
+            marital_status='Married',
+            emergency_contact='Emily Reed (Wife) - +1 (555) 999-1122',
+            assigned_psychologist=p1,
+            created_by=ccd_user
+        )
 
-    c2, _ = Client.objects.get_or_create(
-        client_code='ML-2026-002',
-        defaults={
-            'full_name': 'Sophia Martinez',
-            'gender': 'Female',
-            'age': 28,
-            'dob': date(1998, 11, 23),
-            'phone': '+1 (555) 234-9876',
-            'email': 'sophia.m@example.com',
-            'address': '1208 Pine Hill Rd, Austin, TX',
-            'occupation': 'Marketing Director',
-            'marital_status': 'Single',
-            'emergency_contact': 'Carlos Martinez (Father) - +1 (555) 888-2233',
-            'assigned_psychologist': p1,
-            'created_by': ccd_user
-        }
-    )
+    c2 = Client.objects.filter(full_name='Sophia Martinez').first()
+    if not c2:
+        c2 = Client.objects.create(
+            client_code='ML-0002',
+            full_name='Sophia Martinez',
+            gender='Female',
+            age=28,
+            dob=date(1998, 11, 23),
+            phone='+1 (555) 234-9876',
+            email='sophia.m@example.com',
+            address='1208 Pine Hill Rd, Austin, TX',
+            occupation='Marketing Director',
+            marital_status='Single',
+            emergency_contact='Carlos Martinez (Father) - +1 (555) 888-2233',
+            assigned_psychologist=p1,
+            created_by=ccd_user
+        )
 
-    c3, _ = Client.objects.get_or_create(
-        client_code='ML-2026-003',
-        defaults={
-            'full_name': 'David Kim',
-            'gender': 'Male',
-            'age': 42,
-            'dob': date(1984, 8, 9),
-            'phone': '+1 (555) 345-1122',
-            'email': 'david.kim@example.com',
-            'address': '405 Horizon Way, Seattle, WA',
-            'occupation': 'Financial Analyst',
-            'marital_status': 'Divorced',
-            'emergency_contact': 'Hannah Kim (Sister) - +1 (555) 777-3344',
-            'assigned_psychologist': p2,
-            'created_by': ccd_user
-        }
-    )
+    c3 = Client.objects.filter(full_name='David Kim').first()
+    if not c3:
+        c3 = Client.objects.create(
+            client_code='ML-0003',
+            full_name='David Kim',
+            gender='Male',
+            age=42,
+            dob=date(1984, 8, 9),
+            phone='+1 (555) 345-1122',
+            email='david.kim@example.com',
+            address='405 Horizon Way, Seattle, WA',
+            occupation='Financial Analyst',
+            marital_status='Divorced',
+            emergency_contact='Hannah Kim (Sister) - +1 (555) 777-3344',
+            assigned_psychologist=p2,
+            created_by=ccd_user
+        )
 
     # 5. Case History
     CaseHistory.objects.get_or_create(

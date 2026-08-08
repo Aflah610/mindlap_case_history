@@ -200,16 +200,24 @@ def generate_case_history_pdf(client, case_history):
         mse = case_history.mental_status_examination or {}
         mse_table_data = [
             [
-                Paragraph(f"<b>Appearance:</b> {mse.get('appearance', 'Not assessed')}", body_style),
-                Paragraph(f"<b>Behavior:</b> {mse.get('behavior', 'Not assessed')}", body_style)
+                Paragraph(f"<b>Appearance:</b> {mse.get('appearance') or 'Not assessed'}", body_style),
+                Paragraph(f"<b>Behavior:</b> {mse.get('behavior') or 'Not assessed'}", body_style)
             ],
             [
-                Paragraph(f"<b>Speech:</b> {mse.get('speech', 'Not assessed')}", body_style),
-                Paragraph(f"<b>Mood / Affect:</b> {mse.get('moodAndAffect', 'Not assessed')}", body_style)
+                Paragraph(f"<b>Speech:</b> {mse.get('speech') or 'Not assessed'}", body_style),
+                Paragraph(f"<b>Mood / Affect:</b> {mse.get('moodAndAffect') or 'Not assessed'}", body_style)
             ],
             [
-                Paragraph(f"<b>Thought Process:</b> {mse.get('thoughtProcess', 'Not assessed')}", body_style),
-                Paragraph(f"<b>Insight & Judgment:</b> {mse.get('insightAndJudgment', 'Not assessed')}", body_style)
+                Paragraph(f"<b>Thought Process:</b> {mse.get('thoughtProcess') or 'Not assessed'}", body_style),
+                Paragraph(f"<b>Thought Content:</b> {mse.get('thoughtContent') or 'Not assessed'}", body_style)
+            ],
+            [
+                Paragraph(f"<b>Perception:</b> {mse.get('perception') or 'Not assessed'}", body_style),
+                Paragraph(f"<b>Cognition:</b> {mse.get('cognition') or 'Not assessed'}", body_style)
+            ],
+            [
+                Paragraph(f"<b>Insight & Judgment:</b> {mse.get('insightAndJudgment') or 'Not assessed'}", body_style),
+                Paragraph("", body_style)
             ]
         ]
         t_mse = Table(mse_table_data, colWidths=[270, 270])
@@ -255,11 +263,18 @@ def generate_case_history_pdf(client, case_history):
         # Section 5: Treatment Plan & Goals
         elements.append(Paragraph("5. Recommended Treatment Plan & Goals", section_head))
         tp = case_history.treatment_plan or {}
-        elements.append(Paragraph(f"<b>Short-Term Goals:</b> {tp.get('shortTermGoals', 'Not specified')}", body_style))
+        st_goals = tp.get('shortTermGoals') or case_history.treatment_goals or 'Symptom reduction & coping skill development'
+        lt_goals = tp.get('longTermGoals') or 'Relapse prevention & emotional regulation'
+        modality = tp.get('modality') or 'Cognitive Behavioral Therapy (CBT)'
+
+        elements.append(Paragraph(f"<b>Short-Term Goals:</b> {st_goals}", body_style))
         elements.append(Spacer(1, 4))
-        elements.append(Paragraph(f"<b>Long-Term Goals:</b> {tp.get('longTermGoals', 'Not specified')}", body_style))
+        elements.append(Paragraph(f"<b>Long-Term Goals:</b> {lt_goals}", body_style))
         elements.append(Spacer(1, 4))
-        elements.append(Paragraph(f"<b>Therapeutic Modality:</b> {tp.get('modality', 'Not specified')}", body_style))
+        elements.append(Paragraph(f"<b>Therapeutic Modality:</b> {modality}", body_style))
+        if case_history.treatment_goals and case_history.treatment_goals != st_goals:
+            elements.append(Spacer(1, 4))
+            elements.append(Paragraph(f"<b>Overall Strategy & Notes:</b> {case_history.treatment_goals}", body_style))
         elements.append(Spacer(1, 10))
 
         # Section 6: Session Notes Timeline (if any exist)
@@ -267,21 +282,43 @@ def generate_case_history_pdf(client, case_history):
         if sessions.exists():
             elements.append(Paragraph("6. Therapy Session Progress Timeline", section_head))
             sn_headers = [
-                Paragraph("<b>Sess #</b>", meta_label),
+                Paragraph("<b>Session</b>", meta_label),
                 Paragraph("<b>Date</b>", meta_label),
-                Paragraph("<b>Duration</b>", meta_label),
-                Paragraph("<b>Clinical Progress & Notes</b>", meta_label)
+                Paragraph("<b>Updated At</b>", meta_label),
+                Paragraph("<b>Clinical Session Details & Progress</b>", meta_label)
             ]
             sn_table_data = [sn_headers]
             for sn in sessions:
+                details = []
+                if sn.notes:
+                    details.append(f"<b>Notes:</b> {sn.notes}")
+                if sn.clinical_observation:
+                    details.append(f"<b>Clinical Observation:</b> {sn.clinical_observation}")
+                if sn.progress:
+                    details.append(f"<b>Therapeutic Progress:</b> {sn.progress}")
+                if sn.risk_level:
+                    details.append(f"<b>Risk Level:</b> {sn.risk_level}")
+                if sn.homework:
+                    details.append(f"<b>Homework:</b> {sn.homework}")
+                if sn.treatment_recommendation:
+                    details.append(f"<b>Recommendation:</b> {sn.treatment_recommendation}")
+                if sn.follow_up_date:
+                    details.append(f"<b>Follow-up Date:</b> {sn.follow_up_date.strftime('%Y-%m-%d')}")
+                if sn.therapist_signature:
+                    details.append(f"<b>Clinician Signature:</b> {sn.therapist_signature}")
+
+                cell_text = "<br/>".join(details) if details else "No details recorded"
+
+                updated_time_str = sn.created_at.strftime('%Y-%m-%d %I:%M %p') if sn.created_at else sn.session_date.strftime('%Y-%m-%d')
+
                 sn_table_data.append([
-                    Paragraph(f"#{sn.session_number}", body_style),
+                    Paragraph(f"Session {sn.session_number}", body_style),
                     Paragraph(sn.session_date.strftime('%Y-%m-%d'), body_style),
-                    Paragraph(sn.duration or '50m', body_style),
-                    Paragraph(f"<b>Notes:</b> {sn.notes or 'N/A'}<br/><b>Homework:</b> {sn.homework or 'N/A'}", body_style)
+                    Paragraph(updated_time_str, body_style),
+                    Paragraph(cell_text, body_style)
                 ])
             
-            t_sn = Table(sn_table_data, colWidths=[45, 75, 60, 360])
+            t_sn = Table(sn_table_data, colWidths=[60, 70, 95, 315])
             t_sn.setStyle(TableStyle([
                 ('BACKGROUND', (0,0), (-1,0), PURPLE_LIGHT),
                 ('TEXTCOLOR', (0,0), (-1,0), PURPLE_DARK),

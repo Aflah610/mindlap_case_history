@@ -16,10 +16,10 @@ export const Clients: React.FC = () => {
   const [showRegModal, setShowRegModal] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [selectedClientForReport, setSelectedClientForReport] = useState<Client | null>(null);
+  const [caseHistoriesMap, setCaseHistoriesMap] = useState<Record<number, boolean>>({});
 
   // New Client Form state
   const [newClientData, setNewClientData] = useState({
-    client_code: `ML-2026-${Math.floor(100 + Math.random() * 900)}`,
     full_name: '',
     gender: 'Female',
     age: 29,
@@ -47,6 +47,7 @@ export const Clients: React.FC = () => {
   useEffect(() => {
     fetchClients();
     fetchPsychologists();
+    fetchCaseHistories();
   }, [effectiveRole]);
 
   const fetchClients = async () => {
@@ -67,6 +68,22 @@ export const Clients: React.FC = () => {
     }
   };
 
+  const fetchCaseHistories = async () => {
+    try {
+      if (effectiveRole === 'ccd') return;
+      const res = await api.get('case-history/');
+      const histories = res.data.results || res.data || [];
+      const map: Record<number, boolean> = {};
+      histories.forEach((ch: any) => {
+        const cId = Number(typeof ch.client === 'object' ? ch.client.id : ch.client);
+        if (cId) map[cId] = true;
+      });
+      setCaseHistoriesMap(map);
+    } catch (e) {
+      console.error('Failed to load case histories for status:', e);
+    }
+  };
+
   const activePsychologists = psychologists.filter(p => p.user?.status !== 'inactive' && p.user?.is_active !== false);
   const formerPsychologists = psychologists.filter(p => p.user?.status === 'inactive' || p.user?.is_active === false);
 
@@ -79,11 +96,12 @@ export const Clients: React.FC = () => {
       } else {
         delete payload.assigned_psychologist;
       }
-      await api.post('clients/', payload);
+      const res = await api.post('clients/', payload);
+      const assignedCode = res.data?.client_code || '';
+      alert(`Client registered successfully with Client Code ${assignedCode}!`);
       fetchClients();
       setShowRegModal(false);
       setNewClientData({
-        client_code: `ML-2026-${Math.floor(100 + Math.random() * 900)}`,
         full_name: '',
         gender: 'Female',
         age: 29,
@@ -259,6 +277,7 @@ export const Clients: React.FC = () => {
               <th className="px-6 py-3.5">Age / Gender</th>
               <th className="px-6 py-3.5">Phone & Email</th>
               <th className="px-6 py-3.5">Assigned Psychologist</th>
+              {effectiveRole !== 'ccd' && <th className="px-6 py-3.5">Report Status</th>}
               <th className="px-6 py-3.5 text-right">Actions</th>
             </tr>
           </thead>
@@ -291,6 +310,19 @@ export const Clients: React.FC = () => {
                       <span className="text-slate-400 italic">Unassigned</span>
                     )}
                   </td>
+                  {effectiveRole !== 'ccd' && (
+                    <td className="px-6 py-4">
+                      {caseHistoriesMap[client.id] ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+                          <FileText className="w-3.5 h-3.5 text-emerald-600" /> Completed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> Pending Evaluation
+                        </span>
+                      )}
+                    </td>
+                  )}
                   <td className="px-6 py-4 text-right flex items-center justify-end gap-1.5">
                     {/* Report View & Download actions for non-CCD roles */}
                     {effectiveRole !== 'ccd' && (

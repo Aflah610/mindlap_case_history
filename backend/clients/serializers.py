@@ -14,3 +14,6 @@ class ClientSerializer(serializers.ModelSerializer):
             'assigned_psychologist', 'assigned_psychologist_detail', 'created_by',
             'created_by_detail', 'created_at'
         ]
+        extra_kwargs = {
+            'client_code': {'required': False, 'allow_blank': True}
+        }

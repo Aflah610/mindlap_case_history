@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Appointment, Psychologist } from '../types';
 import { Calendar as CalendarIcon, Clock, User, ArrowRightLeft, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { api } from '../services/api';
+import { formatAppointmentTime } from '../utils/dateUtils';
 
 interface TherapistScheduleMonitorProps {
   therapists: Psychologist[];
@@ -92,7 +93,7 @@ export const TherapistScheduleMonitor: React.FC<TherapistScheduleMonitorProps> =
                   </div>
                 ) : (
                   therapistApps.map((app) => {
-                    const timeFormatted = new Date(app.appointment_date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    const timeFormatted = formatAppointmentTime(app.appointment_date);
                     return (
                       <div
                         key={app.id}

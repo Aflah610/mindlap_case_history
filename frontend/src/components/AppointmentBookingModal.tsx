@@ -78,8 +78,11 @@ export const AppointmentBookingModal: React.FC<AppointmentBookingModalProps> = (
     setSubmitting(true);
 
     try {
-      const start24 = convertTo24Hour(startHour, startPeriod);
-      const isoDate = `${selectedDate}T${start24}:${startMinute}:00Z`;
+      const [year, month, day] = selectedDate.split('-').map(Number);
+      const h24 = parseInt(convertTo24Hour(startHour, startPeriod), 10);
+      const m = parseInt(startMinute, 10);
+      const localDate = new Date(year, month - 1, day, h24, m, 0);
+      const isoDate = localDate.toISOString();
       const timeRangeLabel = `${startHour}:${startMinute} ${startPeriod} to ${endHour}:${endMinute} ${endPeriod}`;
       const updatedRemarks = remarks.trim() ? `[Slot: ${timeRangeLabel}] ${remarks}` : `[Slot: ${timeRangeLabel}]`;
 

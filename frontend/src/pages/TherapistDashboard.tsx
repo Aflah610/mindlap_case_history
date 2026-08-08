@@ -5,7 +5,7 @@ import { api } from '../services/api';
 import { TherapistPersonalCalendar } from '../components/TherapistPersonalCalendar';
 import {
   Users, Calendar, FileText, Download, CheckCircle, Clock,
-  ChevronRight, Plus, ShieldCheck, HeartPulse
+  ChevronRight, Plus, ShieldCheck, HeartPulse, RefreshCw
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -43,28 +43,39 @@ export const TherapistDashboard: React.FC = () => {
     );
   }
 
+  const todayAppointmentsCount = appointments.filter(app => {
+    if (!app.appointment_date) return false;
+    const d = new Date(app.appointment_date);
+    const today = new Date();
+    return (
+      d.getFullYear() === today.getFullYear() &&
+      d.getMonth() === today.getMonth() &&
+      d.getDate() === today.getDate()
+    );
+  }).length;
+
   return (
     <div className="space-y-8">
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-sky-900 via-slate-900 to-sky-950 rounded-2xl p-6 text-white shadow-xl flex items-center justify-between border border-sky-800/40">
         <div>
           <div className="inline-flex items-center gap-2 bg-sky-500/20 text-sky-300 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider mb-2 border border-sky-400/30">
-            <HeartPulse className="w-3.5 h-3.5 text-rose-400" />
-            Clinical Therapy Workspace
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Clinical Practice Portal
           </div>
-          <h1 className="text-2xl font-extrabold tracking-tight">Welcome, Dr. {user?.name || 'Therapist'}</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight">Therapist Workspace Dashboard</h1>
           <p className="text-xs text-slate-300 mt-1 max-w-xl">
-            Isolated confidential workspace. You have access strictly to patients assigned to your clinical care.
+            View assigned client rosters, manage session schedules, conduct clinical assessments, and author progress notes.
           </p>
         </div>
 
-        <Link
-          to="/case-histories"
+        <button
+          onClick={fetchTherapistData}
           className="flex items-center gap-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold px-4 py-2.5 rounded-xl transition-all shadow-md"
         >
-          <Plus className="w-4 h-4" />
-          Clinical Case History
-        </Link>
+          <RefreshCw className="w-4 h-4" />
+          Refresh Dashboard
+        </button>
       </div>
 
       {/* KPI Cards */}
@@ -85,7 +96,7 @@ export const TherapistDashboard: React.FC = () => {
             <span className="text-xs font-bold uppercase tracking-wider">Today's Sessions</span>
             <Calendar className="w-5 h-5 text-teal-600" />
           </div>
-          <div className="text-3xl font-extrabold text-slate-800">{appointments.length}</div>
+          <div className="text-3xl font-extrabold text-slate-800">{todayAppointmentsCount}</div>
           <span className="text-[11px] text-slate-500 flex items-center gap-1">
             <Clock className="w-3 h-3 text-amber-500" /> Scheduled consultations
           </span>

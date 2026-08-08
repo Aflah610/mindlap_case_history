@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../services/api';
 import { Client, CaseHistory, SessionNote, Psychologist } from '../types';
-import { ShieldAlert, FileText, PlusCircle, Edit, Download, Eye, Filter } from 'lucide-react';
+import { ShieldAlert, FileText, PlusCircle, Edit, Download, Eye, Filter, CheckCircle, AlertCircle } from 'lucide-react';
 import { CaseHistoryWizard } from '../components/CaseHistoryWizard';
 import { PDFModal } from '../components/PDFModal';
 
@@ -37,14 +37,18 @@ export const CaseHistories: React.FC = () => {
 
         const chMap: Record<number, CaseHistory> = {};
         (chRes.data.results || chRes.data || []).forEach((ch: CaseHistory) => {
-          chMap[ch.client] = ch;
+          const clientId = Number(typeof ch.client === 'object' ? (ch.client as any).id : ch.client);
+          if (clientId) chMap[clientId] = ch;
         });
         setCaseHistories(chMap);
 
         const snMap: Record<number, SessionNote[]> = {};
         (snRes.data.results || snRes.data || []).forEach((sn: SessionNote) => {
-          if (!snMap[sn.client]) snMap[sn.client] = [];
-          snMap[sn.client].push(sn);
+          const clientId = Number(typeof sn.client === 'object' ? (sn.client as any).id : sn.client);
+          if (clientId) {
+            if (!snMap[clientId]) snMap[clientId] = [];
+            snMap[clientId].push(sn);
+          }
         });
         setSessionNotesMap(snMap);
       }
@@ -162,6 +166,7 @@ export const CaseHistories: React.FC = () => {
             <thead>
               <tr className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-500 uppercase tracking-wider">
                 <th className="px-6 py-3">Client Name</th>
+                <th className="px-6 py-3">Report Status</th>
                 <th className="px-6 py-3">Primary Diagnosis</th>
                 <th className="px-6 py-3">Risk Level</th>
                 <th className="px-6 py-3">Assigned Therapist</th>
@@ -182,6 +187,17 @@ export const CaseHistories: React.FC = () => {
                     <td className="px-6 py-4">
                       <div className="font-bold text-slate-900">{client.full_name}</div>
                       <div className="text-[11px] font-mono text-slate-400">{client.client_code}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      {ch ? (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-800 border border-emerald-200 shadow-2xs">
+                          <CheckCircle className="w-3.5 h-3.5 text-emerald-600" /> Completed
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-800 border border-amber-200 shadow-2xs">
+                          <AlertCircle className="w-3.5 h-3.5 text-amber-600" /> Pending Evaluation
+                        </span>
+                      )}
                     </td>
                     <td className="px-6 py-4 text-slate-700">
                       {effectiveRole === 'ccd' ? (

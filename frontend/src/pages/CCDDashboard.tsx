@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Client, Appointment, Psychologist } from '../types';
 import { api } from '../services/api';
 import { AppointmentBookingModal } from '../components/AppointmentBookingModal';
+import { formatAppointmentDateTime } from '../utils/dateUtils';
 import {
   UserPlus, Calendar, ShieldAlert, CheckCircle2, Clock,
   Search, FilePlus, Phone, Mail, UserCheck, AlertTriangle, Edit3, UserCheck2, RefreshCw, Trash2
@@ -66,9 +67,7 @@ export const CCDDashboard: React.FC = () => {
   const handleRegisterClient = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const clientCode = `ML-2026-${Math.floor(100 + Math.random() * 900)}`;
-      await api.post('clients/', {
-        client_code: clientCode,
+      const res = await api.post('clients/', {
         full_name: fullName,
         gender: gender,
         age: age,
@@ -78,7 +77,8 @@ export const CCDDashboard: React.FC = () => {
         assigned_psychologist: assignedPsychologistId ? parseInt(assignedPsychologistId, 10) : null
       });
 
-      alert(`Client ${fullName} registered successfully with code ${clientCode}!`);
+      const assignedCode = res.data?.client_code || 'newly assigned code';
+      alert(`Client ${fullName} registered successfully with Client Code ${assignedCode}!`);
       setShowIntakeForm(false);
       setFullName('');
       setPhone('');
@@ -249,11 +249,19 @@ export const CCDDashboard: React.FC = () => {
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
           <div className="flex items-center justify-between text-slate-500">
-            <span className="text-xs font-bold uppercase tracking-wider">Appointments Scheduled</span>
+            <span className="text-xs font-bold uppercase tracking-wider">Scheduled Today</span>
             <Calendar className="w-5 h-5 text-teal-600" />
           </div>
-          <div className="text-3xl font-extrabold text-slate-800">{appointments.length}</div>
-          <span className="text-[11px] text-teal-600 font-semibold">Conflict checking active</span>
+          <div className="text-3xl font-extrabold text-slate-800">{appointments.filter(app => {
+            if (!app.appointment_date) return false;
+            const d = new Date(app.appointment_date);
+            const today = new Date();
+            return (
+              d.getFullYear() === today.getFullYear() &&
+              d.getMonth() === today.getMonth() &&
+              d.getDate() === today.getDate()
+            );
+          }).length}</div>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
@@ -329,8 +337,8 @@ export const CCDDashboard: React.FC = () => {
                     <td className="p-3 text-sky-700 font-semibold">
                       {app.psychologist_detail?.user?.name ? `Dr. ${app.psychologist_detail.user.name}` : 'Unassigned'}
                     </td>
-                    <td className="p-3 font-mono">
-                      {new Date(app.appointment_date).toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })}
+                    <td className="p-3 font-mono font-bold text-slate-800">
+                      {formatAppointmentDateTime(app.appointment_date)}
                     </td>
                     <td className="p-3">
                       <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${app.mode === 'Online' ? 'bg-indigo-100 text-indigo-800' : 'bg-slate-100 text-slate-700'}`}>
